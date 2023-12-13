@@ -1,7 +1,0 @@
-0. 0. 3.0 0 0. 0. 3.0
-
-.
-.
-.
-format is 
-cotb cota p flp localx localy pT
