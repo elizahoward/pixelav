@@ -1,0 +1,17 @@
+Code snippit for ARM
+
+#include <math.h>
+#include <stdio.h>
+#include <time.h>
+#include <stddef.h>
+#ifdef __POWERPC__
+#include <altivec.h>
+#undef pixel
+#else
+#ifdef __arm__
+#include "sse2neon.h"
+#else
+#include <xmmintrin.h>
+#endif
+#endif
+

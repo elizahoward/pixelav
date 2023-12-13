@@ -1,0 +1,1 @@
+c++ -std=c++11 -Wall -O2 -Df2cFortran -DSI_PIXEL_TEMPLATE_STANDALONE  $1.cxx `root-config --cflags --libs` -I/usr/local/include -L/usr/local/lib -lgsl -L/usr/X11/lib -lX11 -lXt -o $1
