@@ -24,10 +24,8 @@
 /* Version that incorporates the temporal response of the preamp */
 /* Print current from largest pixels */
 /* Include external weighting potential lookup table in wgt_pot.init */
-/* Randomize impact point over a 3x3 pixel array */
-/* Pass through module impact y and track pT */
+/* Include external weighting potential lookup table in wgt_pot.init */
 /* Fix event to event momentum dependence of charge deposition (07/18/2022) */
-
 
 #include <math.h>
 #include <stdio.h>
@@ -43,6 +41,7 @@
 #include <xmmintrin.h>
 #endif
 #endif
+
 
 /* Global symbols */
 
@@ -68,7 +67,7 @@
 
 /* Define track list size */
 
-#define NMUON  50000
+#define NMUON  1000
 
 /* Define the number of steps in the crrc response function */
 
@@ -133,7 +132,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 
     /* Local variables */
     static float vect[6];
-	static float cotatrack[NMUON], cotbtrack[NMUON], ppiontrack[NMUON], modxtrack[NMUON], modytrack[NMUON], pttrack[NMUON];
+	static float cotatrack[NMUON], cotbtrack[NMUON], ppiontrack[NMUON];
 	static int flipped[NMUON];
     static float thick, xsize, ysize, temp, flux[2], rhe, rhh, peaktim, samptim, stimstp;    
     static int i__, indeh[2][NEHSTORE]	/* was [2][300000] */;
@@ -233,7 +232,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 	if(nskip > 0) {
 		
 		ntrack = 0;
-		while(fscanf(icfp,"%f %f %f %d %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &modxtrack[0], &modytrack[0], &pttrack[0]) != EOF) {
+		while(fscanf(icfp,"%f %f %f %d", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0]) != EOF) {
 			++ntrack; 
 			if(ntrack >= nskip) break;
 		}		
@@ -242,7 +241,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 /* Now read-in track angles and momenta to process */
 	
 	ntrack = 0;
-    while(fscanf(icfp,"%f %f %f %d %f %f %f", &cotatrack[ntrack], &cotbtrack[ntrack], &ppiontrack[ntrack], &flipped[ntrack], &modxtrack[ntrack], &modytrack[ntrack], &pttrack[ntrack]) != EOF) {
+    while(fscanf(icfp,"%f %f %f %d", &cotatrack[ntrack], &cotbtrack[ntrack], &ppiontrack[ntrack], &flipped[ntrack]) != EOF) {
 		 ++ntrack; 
 		 if(ntrack == NMUON) break;
 		 if(ntrack >= runsize) break;
@@ -342,8 +341,8 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 			vect[2] = 0.;
 		}
 			   
-		vect[0] = 3.*xsize * (rvec[0] - 0.5) + (vect[2] - thick/2.)*locdir[0]/locdir[2];
-		vect[1] = 3.*ysize * (rvec[1] - 0.5) + (vect[2] - thick/2.)*locdir[1]/locdir[2];
+		vect[0] = xsize * (rvec[0] - 0.5) + (vect[2] - thick/2.)*locdir[0]/locdir[2];
+		vect[1] = ysize * (rvec[1] - 0.5) + (vect[2] - thick/2.)*locdir[1]/locdir[2];
 		vect[3] = locdir[0]*ppiontrack[ievent];
 		vect[4] = locdir[1]*ppiontrack[ievent];
 		vect[5] = locdir[2]*ppiontrack[ievent];
@@ -376,8 +375,8 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
              ofp = fopen(outfile, "a");
              fprintf(ofp,"<cluster>\n");
              fprintf(ofp,
-             "%f %f %f %f %f %f %d %f %f \n", 
-             vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, modytrack[ievent], pttrack[ievent]);
+             "%f %f %f %f %f %f %d \n", 
+             vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh);
              for(k = 1; k<=NCRRC; ++k) {
                 fprintf(ofp,"<time slice %f ps>\n", k*stimstp);
                 for (j = 0; j < TYSIZE; ++j) {
@@ -438,5 +437,3 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 } /* MAIN__ */
 
 #include "ppixelav2.c"
-
-

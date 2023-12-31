@@ -26,7 +26,7 @@
 /* Include external weighting potential lookup table in wgt_pot.init */
 /* Randomize impact point over a 3x3 pixel array */
 /* Pass through module impact y and track pT */
-/* Fix event to event momentum dependence of charge deposition (07/18/2022) */
+/* Very small time step and sampling for Doug */
 
 
 #include <math.h>
@@ -48,7 +48,7 @@
 
 /* Maximum number of e-h pairs to be stored in static arrays */
 
-#define NEHSTORE 150000
+#define NEHSTORE 75000
 
 /* Define pixel signal buffer sizes */
 
@@ -72,7 +72,7 @@
 
 /* Define the number of steps in the crrc response function */
 
-#define NCRRC 20
+#define NCRRC 500
 
 /* Table of constant values */
 
@@ -168,7 +168,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 	if(argc == 2) {
 		sscanf(argv[1],"%d", &frun);
 		if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;}
-		runsize = 30000;
+		runsize = 1000;
 		printf("Skipping %d blocks of runsize %d \n", frun-1, runsize);
 	}
 	
@@ -361,7 +361,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 
 /*  don't process overflows */
 
-         if(neh < NEHSTORE) {
+         if(neh < NEHSTORE-2) {
 
 /*  Propagate the e's and h's (no signal after the sample time) */
 				
@@ -438,5 +438,4 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 } /* MAIN__ */
 
 #include "ppixelav2.c"
-
 

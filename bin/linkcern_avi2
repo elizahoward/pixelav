@@ -1,1 +1,0 @@
-gcc -O2 $1.c -mavx2 -mfma -lm -o $1
