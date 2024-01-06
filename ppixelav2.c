@@ -2433,161 +2433,155 @@ double rutherford(float e, float *etar)
 
 /* Subroutine */ int pixinit(float *pimom, float *thick, float *xsize, float *ysize, float *temp, float flux[2], float *rhe, float *rhh, float *peaktim, float *samptim, int *ehole, int *new_drde, int *filebase)
 {
-	/* Initialize everything from external file */
+  /* Initialize everything from external file */
+  
+  /* Local variables */
+  static int  i, j, ix, iy, iz, idumx, idumy, idumz;
+  static float tdummy, xdummy, ydummy, wdum[3][3];
+  char c;
+  FILE *ifp;
+  static vect_or_f vzero, vhund;
 	
-    /* Local variables */
-    static int  i, j, ix, iy, iz, idumx, idumy, idumz;
-    static float tdummy, xdummy, ydummy, wdum[3][3];
-	char c;
-	FILE *ifp;
-	static vect_or_f vzero, vhund;
+  /* **************************************************************** */
+  /* * This routine initializes several parameters and the electric * */
+  /* * field array from an external file pixel.init                 * */
+  /* * Parameters: thick - thickness of the detector (in microns)   * */
+  /* *             xsize - x-size of each pixel (in microns)        * */
+  /* *             ysize - y-size of each pixel (in microns)        * */
+  /* *              temp - the silicon temperature (in deg K)       * */
+  /* *              flux - flux of hadrons (in 10**14 h/cm**2)      * */
+  /* *               rhe - electron Hall factor (if <=0, use 1.12)  * */
+  /* *               rhh - electron Hall factor (if <=0, use 0.90)  * */
+  /* *           peaktim - CRRC peaking time                        * */
+  /* *           samptim - full drift sampling time                 * */
+  /* *             ehole - flag to select e (0) or (h) signal calc  * */
+  /* *          new_drde - flag to select NIST Estar drde (>0)      * */
+  /* *          filebase - the base index of all output files       * */
+  /* **************************************************************** */
 	
-	/* **************************************************************** */
-	/* * This routine initializes several parameters and the electric * */
-	/* * field array from an external file pixel.init                 * */
-	/* * Parameters: thick - thickness of the detector (in microns)   * */
-	/* *             xsize - x-size of each pixel (in microns)        * */
-	/* *             ysize - y-size of each pixel (in microns)        * */
-	/* *              temp - the silicon temperature (in deg K)       * */
-	/* *              flux - flux of hadrons (in 10**14 h/cm**2)      * */
-	/* *               rhe - electron Hall factor (if <=0, use 1.12)  * */
-	/* *               rhh - electron Hall factor (if <=0, use 0.90)  * */
-	/* *           peaktim - CRRC peaking time                        * */
-	/* *           samptim - full drift sampling time                 * */
-	/* *             ehole - flag to select e (0) or (h) signal calc  * */
-	/* *          new_drde - flag to select NIST Estar drde (>0)      * */
-	/* *          filebase - the base index of all output files       * */
-	/* **************************************************************** */
+  /* Function Body */
+  
+  /*  Useful constant vectors */
 	
-	/* Function Body */
+  vzero.f[0] = 0.;
+  vzero.f[1] = 0.;
+  vzero.f[2] = 0.;
+  vzero.f[3] = 0.;
+  
+  vhund.f[0] = 100.;
+  vhund.f[1] = 100.;
+  vhund.f[2] = 100.;
+  vhund.f[3] = 100.;
+  
+  /*  Initalize the parameters */
 	
-	/*  Useful constant vectors */
+  ifp = fopen("ppixel2.init", "r");
+  if (ifp==NULL) {
+    printf("no ppixel2.init initialization file found/n");
+    return 0;
+  }
+  
+  /* Read-in a header string first and print it*/    
 	
-	vzero.f[0] = 0.;
-	vzero.f[1] = 0.;
-	vzero.f[2] = 0.;
-	vzero.f[3] = 0.;
+  for (i=0; (c=getc(ifp)) != '\n'; ++i) {
+    header[i] = c;
+  }
+  printf("%s\n", header);
+  
+  /* next, the random number seed and the hour of program shutdown */    
+  
+  fscanf(ifp,"%f %d", pimom, filebase);
+  
+  printf("pion momentum (< 1.1 defauts to 45 GeV) = %f, file base index = %d\n", *pimom, *filebase);
+  
+  /* next, the magnetic field */    
+  
+  fscanf(ifp,"%f %f %f", &bfield.f[0], &bfield.f[1], &bfield.f[2]);
+  bfield.f[3] = 0.;
+  bfield_z = bfield.f[2];
+  
+  printf("bfield = %f, %f, %f, %f\n", bfield.f[0], bfield.f[1], bfield.f[2], bfield.f[3]);
+  
+  /* next a bunch of parameters */    
+  
+  fscanf(ifp,"%f %f %f %f %f %f %f %f %f %f %d %d %d %d %d", thick, xsize, ysize, temp, &flux[0], &flux[1], rhe, rhh, peaktim, samptim, ehole, new_drde, &npixx, &npixy, &npixz);
+  if((*ehole) !=0) { *ehole = 1;}
+  
+  printf("thickness = %f, x/y sizes = %f/%f, temp = %f, flux_e = %f, flux_h = %f, rhe = %f, rhh = %f, peaktim = %f, samptim = %f, ehole = %d, new_drde = %d \n", 
+	 *thick, *xsize, *ysize, *temp, flux[0], flux[1], *rhe, *rhh, *peaktim, *samptim, *ehole, *new_drde);
+  printf("x/y/z field array dimensions = %d/%d/%d\n", npixx, npixy, npixz);
+  if(npixx > NARRAYX || npixy > NARRAYY || npixz > NARRAYZ) {printf("Efield array too large, resize arrays \n"); return 0;}
+  /* Set up boundary limit array */
+  mnode[0] = npixx-1; mnode[1] = npixy-1; mnode[2] = npixz-1;
+  
+  /* Now do the E-field */
+  
+  for (iz = 0; iz < npixz; ++iz) {
+    for (iy = 0; iy < npixy; ++iy) {
+      for (ix = 0; ix < npixx; ++ix) {
+	fscanf(ifp,"%d %d %d %f %f %f", &idumx, &idumy, &idumz,
+	       &efield[ix][iy][iz].f[0], &efield[ix][iy][iz].f[1], &efield[ix][iy][iz].f[2]);
+	efield[ix][iy][iz].f[3]=0.;
 	
-	vhund.f[0] = 100.;
-	vhund.f[1] = 100.;
-	vhund.f[2] = 100.;
-	vhund.f[3] = 100.;
+	/* Force boundary conditions */			  
 	
-	/*  Initalize the parameters */
+	if(ix == 0) efield[ix][iy][iz].f[0]=1.e-6;
+	if(ix == mnode[0]) efield[ix][iy][iz].f[0]=1.e-6;
+	if(iy == 0) efield[ix][iy][iz].f[1]=1.e-6;
+	if(iy == mnode[1]) efield[ix][iy][iz].f[1]=1.e-6;
 	
-	ifp = fopen("ppixel2.init", "r");
-	if (ifp==NULL) {
-      printf("no ppixel2.init initialization file found/n");
-      return 0;
-	}
+	/* Convert from V/cm to V/m */          
 	
-	/* Read-in a header string first and print it*/    
-	
-	for (i=0; (c=getc(ifp)) != '\n'; ++i) {
-		header[i] = c;
-	}
-	printf("%s\n", header);
-	
-	/* next, the random number seed and the hour of program shutdown */    
-	
-	fscanf(ifp,"%f %d", pimom, filebase);
-	
-	printf("pion momentum (< 1.1 defauts to 45 GeV) = %f, file base index = %d\n", *pimom, *filebase);
-	
-	/* next, the magnetic field */    
-	
-	fscanf(ifp,"%f %f %f", &bfield.f[0], &bfield.f[1], &bfield.f[2]);
-	bfield.f[3] = 0.;
-	bfield_z = bfield.f[2];
-	
-	printf("bfield = %f, %f, %f, %f\n", bfield.f[0], bfield.f[1], bfield.f[2], bfield.f[3]);
-	
-	/* next a bunch of parameters */    
-	
-	fscanf(ifp,"%f %f %f %f %f %f %f %f %f %f %d %d %d %d %d", thick, xsize, ysize, temp, &flux[0], &flux[1], rhe, rhh, peaktim, samptim, ehole, new_drde, &npixx, &npixy, &npixz);
-	if((*ehole) !=0) { *ehole = 1;}
-	
-	printf("thickness = %f, x/y sizes = %f/%f, temp = %f, flux_e = %f, flux_h = %f, rhe = %f, rhh = %f, peaktim = %f, samptim = %f, ehole = %d, new_drde = %d \n", 
-	       *thick, *xsize, *ysize, *temp, flux[0], flux[1], *rhe, *rhh, *peaktim, *samptim, *ehole, *new_drde);
-	printf("x/y/z field array dimensions = %d/%d/%d\n", npixx, npixy, npixz);
-   if(npixx > NARRAYX || npixy > NARRAYY || npixz > NARRAYZ) {printf("Efield array too large, resize arrays \n"); return 0;}
-	/* Set up boundary limit array */
-	mnode[0] = npixx-1; mnode[1] = npixy-1; mnode[2] = npixz-1;
-	
-	/* Now do the E-field */
-	
-	for (iz = 0; iz < npixz; ++iz) {
-      for (iy = 0; iy < npixy; ++iy) {
-			for (ix = 0; ix < npixx; ++ix) {
-				fscanf(ifp,"%d %d %d %f %f %f", &idumx, &idumy, &idumz,
-						 &efield[ix][iy][iz].f[0], &efield[ix][iy][iz].f[1], &efield[ix][iy][iz].f[2]);
-				efield[ix][iy][iz].f[3]=0.;
-				
-				/* Force boundary conditions */			  
-				
-				if(ix == 0) efield[ix][iy][iz].f[0]=1.e-6;
-				if(ix == mnode[0]) efield[ix][iy][iz].f[0]=1.e-6;
-				if(iy == 0) efield[ix][iy][iz].f[1]=1.e-6;
-				if(iy == mnode[1]) efield[ix][iy][iz].f[1]=1.e-6;
-				
-				/* Convert from V/cm to V/m */          
-				
 #ifdef __POWERPC__		              
-				efield[ix][iy][iz].v = vec_madd(vhund.v,efield[ix][iy][iz].v,vzero.v);
+	efield[ix][iy][iz].v = vec_madd(vhund.v,efield[ix][iy][iz].v,vzero.v);
 #else
-				efield[ix][iy][iz].v = _mm_mul_ps(vhund.v,efield[ix][iy][iz].v);
+	efield[ix][iy][iz].v = _mm_mul_ps(vhund.v,efield[ix][iy][iz].v);
 #endif
-			}
       }
-	}
-	printf("central p-side field = %f %f %f\n", efield[0][0][1].f[0], efield[0][0][1].f[1], efield[0][0][1].f[2]);
-	printf("central .5 way field = %f %f %f\n", efield[0][0][npixz/2].f[0], efield[0][0][npixz/2].f[1],
-			 efield[0][0][npixz/2].f[2]);
-	printf("central n-side field = %f %f %f\n", efield[0][0][npixz-2].f[0], efield[0][0][npixz-2].f[1],
-			 efield[0][0][npixz-2].f[2]);
-	
-	fclose(ifp);
-    
-/* Read in weighting potential file */
-
-    ifp = fopen("wgt_pot.init", "r");
-    if (ifp==NULL) {
-		printf("no wgt_pot.init initialization file found/n");
-		return 0;
     }
-    fscanf(ifp,"%f %f %f %d %d %d", &tdummy, &xdummy, &ydummy, &idumx, &idumy, &idumz);
-    if(tdummy != *thick || xdummy != *xsize || ydummy != *ysize || idumx != npixx || idumy != npixy || idumz != npixz) {
-       printf("thickness/xsize/ysize = %f/%f/%f, npixx/npixy/npixz = %d/%d/%d match problem\n",
-              tdummy, xdummy, ydummy, idumx, idumy, idumz);
-       return 0;
-    }
+  }
+  printf("central p-side field = %f %f %f\n", efield[0][0][1].f[0], efield[0][0][1].f[1], efield[0][0][1].f[2]);
+  printf("central .5 way field = %f %f %f\n", efield[0][0][npixz/2].f[0], efield[0][0][npixz/2].f[1], efield[0][0][npixz/2].f[2]);
+  printf("central n-side field = %f %f %f\n", efield[0][0][npixz-2].f[0], efield[0][0][npixz-2].f[1], efield[0][0][npixz-2].f[2]);
+  fclose(ifp);
     
-	/* Now do the weighting potential */
-	
-    for (iz = 0; iz < npixz; ++iz) {
-		for (iy = 0; iy < npixy; ++iy) {
-			for (ix = 0; ix < npixx; ++ix) {
-				fscanf(ifp,"%d %d %d %f %f %f %f %f %f %f %f %f",&idumx,&idumy,&idumz,&wdum[0][0],&wdum[0][1],
-				       &wdum[0][2],&wdum[1][0],&wdum[1][1],&wdum[1][2],&wdum[2][0],&wdum[2][1],&wdum[2][2]);
-				for(i=0;i<3;++i) {
-				   for(j=0;j<3;++j) {
-/* large meshes can sometimes produce small negative values ... zero them */
-				      if(wdum[i][j] > 0.) {wgtpot[ix][iy][iz][i].f[j] = wdum[i][j];} else {wgtpot[ix][iy][iz][i].f[j] = 0.;}
-				   }
-				   wgtpot[ix][iy][iz][i].f[3]=0.;	
-				}		
-			}
-		}
+  /* Read in weighting potential file */
+  
+  ifp = fopen("wgt_pot.init", "r");
+  if (ifp==NULL) {
+    printf("no wgt_pot.init initialization file found/n");
+    return 0;
+  }
+  fscanf(ifp,"%f %f %f %d %d %d", &tdummy, &xdummy, &ydummy, &idumx, &idumy, &idumz);
+  if(tdummy != *thick || xdummy != *xsize || ydummy != *ysize || idumx != npixx || idumy != npixy || idumz != npixz) {
+    printf("thickness/xsize/ysize = %f/%f/%f, npixx/npixy/npixz = %d/%d/%d match problem\n", tdummy, xdummy, ydummy, idumx, idumy, idumz);
+    return 0;
+  }
+  
+  /* Now do the weighting potential */
+  
+  for (iz = 0; iz < npixz; ++iz) {
+    for (iy = 0; iy < npixy; ++iy) {
+      for (ix = 0; ix < npixx; ++ix) {
+	fscanf(ifp,"%d %d %d %f %f %f %f %f %f %f %f %f",&idumx,&idumy,&idumz,&wdum[0][0],&wdum[0][1],
+	       &wdum[0][2],&wdum[1][0],&wdum[1][1],&wdum[1][2],&wdum[2][0],&wdum[2][1],&wdum[2][2]);
+	for(i=0;i<3;++i) {
+	  for(j=0;j<3;++j) {
+	    /* large meshes can sometimes produce small negative values ... zero them */
+	    if(wdum[i][j] > 0.) {wgtpot[ix][iy][iz][i].f[j] = wdum[i][j];} else {wgtpot[ix][iy][iz][i].f[j] = 0.;}
+	  }
+	  wgtpot[ix][iy][iz][i].f[3]=0.;	
+	}		
+      }
     }
-    
-    printf("central p-side weighting pot = %f %f %f\n", wgtpot[0][0][1][1].f[0], wgtpot[0][0][1][1].f[1], wgtpot[0][0][1][1].f[2]);
-    printf("central .5 way weighting pot = %f %f %f\n", wgtpot[0][0][npixz/2][1].f[0], wgtpot[0][0][npixz/2][1].f[1],
-		   wgtpot[0][0][npixz/2][1].f[2]);
-    printf("central n-side weighting pot = %f %f %f\n", wgtpot[0][0][npixz-2][1].f[0], wgtpot[0][0][npixz-2][1].f[1],
-		   wgtpot[0][0][npixz-2][1].f[2]);
-	
-    fclose(ifp);
-	return 0;
+  }
+  
+  printf("central p-side weighting pot = %f %f %f\n", wgtpot[0][0][1][1].f[0], wgtpot[0][0][1][1].f[1], wgtpot[0][0][1][1].f[2]);
+  printf("central .5 way weighting pot = %f %f %f\n", wgtpot[0][0][npixz/2][1].f[0], wgtpot[0][0][npixz/2][1].f[1], wgtpot[0][0][npixz/2][1].f[2]);
+  printf("central n-side weighting pot = %f %f %f\n", wgtpot[0][0][npixz-2][1].f[0], wgtpot[0][0][npixz-2][1].f[1], wgtpot[0][0][npixz-2][1].f[2]);
+  
+  fclose(ifp);
+  return 0;
 } /* pixinit_ */
 
 /* Subroutine */ int ranlux_0_(int n__, float *rvec, int *lenv, int *
