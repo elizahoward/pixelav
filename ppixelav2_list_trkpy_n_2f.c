@@ -133,133 +133,133 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 
     /* Local variables */
     static float vect[6];
-	static float cotatrack[NMUON], cotbtrack[NMUON], ppiontrack[NMUON], modxtrack[NMUON], modytrack[NMUON], pttrack[NMUON];
-	static int flipped[NMUON];
+    static float cotatrack[NMUON], cotbtrack[NMUON], ppiontrack[NMUON], modxtrack[NMUON], modytrack[NMUON], pttrack[NMUON];
+    static int flipped[NMUON];
     static float thick, xsize, ysize, temp, flux[2], rhe, rhh, peaktim, samptim, stimstp;    
     static int i__, indeh[2][NEHSTORE]	/* was [2][300000] */;
     static int nto2in, lux, initseed, ivec[25];
     static float pixel[TXSIZE][TYSIZE];
-	static float pixhist[NCRRC+1][TXSIZE][TYSIZE];
-	static float crrcresp[NCRRC];
+    static float pixhist[NCRRC+1][TXSIZE][TYSIZE];
+    static float crrcresp[NCRRC];
     static int ntotin, neh, ntrack;
     static vect_or_f xeh[2][NEHSTORE]	/* was [4][2][300000] */;
-	static vect_or_f xhisteh[NCRRC][2][NEHSTORE];
+    static vect_or_f xhisteh[NCRRC][2][NEHSTORE];
     time_t now;
     struct tm *nows;
     int sec, min, hour, yday, j, k;
     static int fileind, filebase, fileoff, runsize, irun, ievent, frun, nskip, procid, new_drde, ehole;
     static float rvec[4], pimom, xoffset, yoffset, lenxmin, lenxmax, deltaxlen, lenymin, lenymax, deltaylen, locdir[3], cotalpha, cotbeta;
-	static float clusxlen, clusylen;
-	static char outfile[80], seedfile[80];
-	static double alpha;
+    static float clusxlen, clusylen;
+    static char outfile[80], seedfile[80];
+    static double alpha;
 
     FILE *isfp, *iifp, *ofp, *icfp;
 
-        
-	/* If no arguments, quit */
+    
+    /* If no arguments, quit */
 	
-	if(argc < 2) {
-		printf("Need at least one argument to specify run \n");
-		return 0;
-	}
+    if(argc < 2) {
+      printf("Need at least one argument to specify run \n");
+      return 0;
+    }
 	
-	/* A single argument is a first run number  */
+    /* A single argument is a first run number  */
+    
+    if(argc == 2) {
+      sscanf(argv[1],"%d", &frun);
+      if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;}
+      runsize = 30000;
+      printf("Skipping %d blocks of runsize %d \n", frun-1, runsize);
+    }
+    
+    /* If two arguments, second could be a number of runs or a fork instruction */
 	
-	if(argc == 2) {
-		sscanf(argv[1],"%d", &frun);
-		if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;}
-		runsize = 30000;
-		printf("Skipping %d blocks of runsize %d \n", frun-1, runsize);
-	}
+    if(argc == 3) {
+      sscanf(argv[1],"%d", &frun);
+      if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;}
+      if(*argv[2] == 'f') {runsize = 30000;} else {
+	sscanf(argv[2],"%d", &runsize);
+	if(runsize < 1 || runsize > NMUON) {printf("runsize %d is illegal, quit \n", runsize); return 0;}
+      }	
+      printf("Skipping %d blocks of runsize %d \n", frun-1, runsize);
+      if(*argv[2] == 'f') {
+	procid = fork();
+	if(procid) {
+	  printf("Forking process, id = %d\n", procid);
+	  return 0; 
+	}			
+      }
+    }
 	
-	/* If two arguments, second could be a number of runs or a fork instruction */
+    /* If three arguments, retrieve first run, number of runs, and possible fork command */
+    
+    if(argc == 4) {
+      sscanf(argv[1],"%d", &frun);
+      if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;}
+      sscanf(argv[2],"%d", &runsize);
+      if(runsize < 1 || runsize > NMUON) {printf("runsize %d is illegal, quit \n", runsize); return 0;}
+      printf("Skipping %d blocks of runsize %d \n", frun-1, runsize);
+      if(*argv[3] == 'f') {
+	procid = fork();
+	if(procid) {
+	  printf("Forking process, id = %d\n", procid);
+	  return 0; 
+	}			
+      }
+    }
 	
-	if(argc == 3) {
-		sscanf(argv[1],"%d", &frun);
-		if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;}
-		if(*argv[2] == 'f') {runsize = 30000;} else {
-			sscanf(argv[2],"%d", &runsize);
-			if(runsize < 1 || runsize > NMUON) {printf("runsize %d is illegal, quit \n", runsize); return 0;}
-		}	
-		printf("Skipping %d blocks of runsize %d \n", frun-1, runsize);
-		if(*argv[2] == 'f') {
-			procid = fork();
-			if(procid) {
-				printf("Forking process, id = %d\n", procid);
-				return 0; 
-			}			
-		}
-	}
+    /*  Define the detector parameters from the global initialization file */
 	
-	/* If three arguments, retrieve first run, number of runs, and possible fork command */
+    pixinit(&pimom, &thick, &xsize, &ysize, &temp, flux, &rhe, &rhh, &peaktim, &samptim, &ehole, &new_drde, &filebase);
+    
+    crrc(peaktim, samptim, &stimstp, crrcresp);
+    printf("sample time %f \n", stimstp);
+    for(j=0; j<NCRRC; ++j) {
+      printf("crrcresp[%d] = %f \n", j, crrcresp[j]);
+    }
 	
-	if(argc == 4) {
-		sscanf(argv[1],"%d", &frun);
-		if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;}
-		sscanf(argv[2],"%d", &runsize);
-		if(runsize < 1 || runsize > NMUON) {printf("runsize %d is illegal, quit \n", runsize); return 0;}
-		printf("Skipping %d blocks of runsize %d \n", frun-1, runsize);
-		if(*argv[3] == 'f') {
-			procid = fork();
-			if(procid) {
-				printf("Forking process, id = %d\n", procid);
-				return 0; 
-			}			
-		}
-	}
-	
-	/*  Define the detector parameters from the global initialization file */
-	
-	 pixinit(&pimom, &thick, &xsize, &ysize, &temp, flux, &rhe, &rhh, &peaktim, &samptim, &ehole, &new_drde, &filebase);
-	
-	crrc(peaktim, samptim, &stimstp, crrcresp);
-	printf("sample time %f \n", stimstp);
-	for(j=0; j<NCRRC; ++j) {
-		printf("crrcresp[%d] = %f \n", j, crrcresp[j]);
-	}
-	
-	/*  read track list */
+    /*  read track list */
 	
     icfp = fopen("track_list.txt", "r");
     if (icfp==NULL) {
-		printf("no track_list.txt file found/n");
-		return 0;
+      printf("no track_list.txt file found/n");
+      return 0;
     }
 	
-/* Skip to the right place */
+    /* Skip to the right place */
 	
-	nskip = runsize*(frun-1);
+    nskip = runsize*(frun-1);
 	
-	if(nskip > 0) {
-		
-		ntrack = 0;
-		while(fscanf(icfp,"%f %f %f %d %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &modxtrack[0], &modytrack[0], &pttrack[0]) != EOF) {
-			++ntrack; 
-			if(ntrack >= nskip) break;
-		}		
-	}
+    if(nskip > 0) {
+      
+      ntrack = 0;
+      while(fscanf(icfp,"%f %f %f %d %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &modxtrack[0], &modytrack[0], &pttrack[0]) != EOF) {
+	++ntrack; 
+	if(ntrack >= nskip) break;
+      }		
+    }
 	
-/* Now read-in track angles and momenta to process */
+    /* Now read-in track angles and momenta to process */
 	
-	ntrack = 0;
+    ntrack = 0;
     while(fscanf(icfp,"%f %f %f %d %f %f %f", &cotatrack[ntrack], &cotbtrack[ntrack], &ppiontrack[ntrack], &flipped[ntrack], &modxtrack[ntrack], &modytrack[ntrack], &pttrack[ntrack]) != EOF) {
-		 ++ntrack; 
-		 if(ntrack == NMUON) break;
-		 if(ntrack >= runsize) break;
-	 }
-	fclose(icfp);
-	printf("number of tracks = %d \n", ntrack);
+      ++ntrack; 
+      if(ntrack == NMUON) break;
+      if(ntrack >= runsize) break;
+    }
+    fclose(icfp);
+    printf("number of tracks = %d \n", ntrack);
 	
-	/* the file index is the sum of an overall base number and a local run offset */
+    /* the file index is the sum of an overall base number and a local run offset */
+    
+    fileind = filebase + frun;
+    
+    /*  Create a seedfile name for this run */
 	
-	fileind = filebase + frun;
-	
-	/*  Create a seedfile name for this run */
-	
-	
+    
     sprintf(seedfile,"seedfile%5.5d",fileind);
 	
-/*  Determine current time */
+    /*  Determine current time */
 
     now = time(NULL);
     nows = localtime(&now);
@@ -270,170 +270,170 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     
     printf("Begin on day %d at %02d:%02d:%02d\n", yday, hour, min, sec);
 
-/*  Initialize the random number generation */
+    /*  Initialize the random number generation */
 
-/* First check to see if any intermediate state has been saved */
+    /* First check to see if any intermediate state has been saved */
 
     isfp = fopen(seedfile, "r");
     if (isfp==NULL) {
 
-/* If no seedfiled, use single seed and set-up generator */
+      /* If no seedfiled, use single seed and set-up generator */
 
-       lux = 3;
-       ntotin = 0;
-       nto2in = 0;
-	   initseed = fileind;
-       rluxgo_(&lux, &initseed, &ntotin, &nto2in);
-	   irun=0; ievent=0;
+      lux = 3;
+      ntotin = 0;
+      nto2in = 0;
+      initseed = fileind;
+      rluxgo_(&lux, &initseed, &ntotin, &nto2in);
+      irun=0; ievent=0;
     } else {
     
-/* read-in 25 ints and restore generator to previous state */
+      /* read-in 25 ints and restore generator to previous state */
 
-       fscanf(isfp,
-       "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %d %d", 
-       &ivec[0], &ivec[1], &ivec[2], &ivec[3], &ivec[4], &ivec[5], &ivec[6], &ivec[7],
-       &ivec[8], &ivec[9], &ivec[10], &ivec[11], &ivec[12], &ivec[13], &ivec[14], &ivec[15],
-       &ivec[16], &ivec[17], &ivec[18], &ivec[19], &ivec[20], &ivec[21], &ivec[22], &ivec[23],
-       &ivec[24], &irun, &ievent);
-       fclose(isfp);
-       rluxin_(ivec);
+      fscanf(isfp,
+	     "%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %d %d", 
+	     &ivec[0], &ivec[1], &ivec[2], &ivec[3], &ivec[4], &ivec[5], &ivec[6], &ivec[7],
+	     &ivec[8], &ivec[9], &ivec[10], &ivec[11], &ivec[12], &ivec[13], &ivec[14], &ivec[15],
+	     &ivec[16], &ivec[17], &ivec[18], &ivec[19], &ivec[20], &ivec[21], &ivec[22], &ivec[23],
+	     &ivec[24], &irun, &ievent);
+      fclose(isfp);
+      rluxin_(ivec);
     }
     
-	/*  Create a filename for this run */
-	
+    /*  Create a filename for this run */
+    
 
-       sprintf(outfile,"pixel_clusters_d%5.5d.out",fileind);
+    sprintf(outfile,"pixel_clusters_d%5.5d.out",fileind);
         
-	
-	if(ievent==0 && frun == 1) {
+    
+    if(ievent==0 && frun == 1) {
 		
-		/*  copy  header to the output file on first event */
-		
-		ofp = fopen(outfile, "w");
-		fprintf(ofp,"%s \n", &header[0]);
-		fprintf(ofp,"%f  %f  %f  %f\n", xsize, ysize, thick, stimstp);
-		fclose(ofp); 	   
-	}
-	
-		   
-	while(ievent < ntrack) {
-			   
-	/* Generate initial position and direction of the track */
-			   
-		ranlux_(rvec,&c__4);
-		cotbeta = cotbtrack[ievent];	
-		if(fabsf(cotbeta) > 10.) goto incr;
-		cotalpha = cotatrack[ievent];
-		if(fabsf(cotalpha) > 10.) goto incr;
-		locdir[2] = 1./sqrt((double)(1.+cotbeta*cotbeta+cotalpha*cotalpha));
+      /*  copy  header to the output file on first event */
+      
+      ofp = fopen(outfile, "w");
+      fprintf(ofp,"%s \n", &header[0]);
+      fprintf(ofp,"%f  %f  %f  %f\n", xsize, ysize, thick, stimstp);
+      fclose(ofp); 	   
+    }
+    
+    
+    while(ievent < ntrack) {
+      
+      /* Generate initial position and direction of the track */
+      
+      ranlux_(rvec,&c__4);
+      cotbeta = cotbtrack[ievent];	
+      if(fabsf(cotbeta) > 10.) goto incr;
+      cotalpha = cotatrack[ievent];
+      if(fabsf(cotalpha) > 10.) goto incr;
+      locdir[2] = 1./sqrt((double)(1.+cotbeta*cotbeta+cotalpha*cotalpha));
 	/* track travels in the E-field direction in the unflipped coordinate system */
-		if(flipped[ievent] == 0) locdir[2] = -locdir[2];
-		locdir[0] = cotbeta*locdir[2];
-		locdir[1] = cotalpha*locdir[2];
+      if(flipped[ievent] == 0) locdir[2] = -locdir[2];
+      locdir[0] = cotbeta*locdir[2];
+      locdir[1] = cotalpha*locdir[2];
 			   
-			   /*  Calculate the offsets from the detector center to its front face */
-			   
-		xoffset = locdir[0]/locdir[2] * thick / 2.;
-		yoffset = locdir[1]/locdir[2] * thick / 2.;
-			   
-		if(locdir[2] < 0.) {
-			vect[2] = thick;
-		} else {
-			vect[2] = 0.;
-		}
-			   
-		vect[0] = 3.*xsize * (rvec[0] - 0.5) + (vect[2] - thick/2.)*locdir[0]/locdir[2];
-		vect[1] = 3.*ysize * (rvec[1] - 0.5) + (vect[2] - thick/2.)*locdir[1]/locdir[2];
-		vect[3] = locdir[0]*ppiontrack[ievent];
-		vect[4] = locdir[1]*ppiontrack[ievent];
-		vect[5] = locdir[2]*ppiontrack[ievent];
-			   		
-/*  Set Bfield z-direction for this event */
-		
-		bfield.f[2] = bfield_z;
-		if(cotbeta < 0.) {bfield.f[2] = -bfield_z;}
-		
-/*  Propagate the track and make e-h pairs */
-
-
-		deposit(vect, thick, new_drde, NEHSTORE, xeh, &neh);
-		
-
-/*  don't process overflows */
-
-         if(neh < NEHSTORE) {
-
-/*  Propagate the e's and h's (no signal after the sample time) */
-				
-				propag(thick, xsize, ysize, temp, flux, rhe, rhh, samptim, stimstp, ehole, neh, xeh, indeh, xhisteh);
-				
-/*  Count e's and h's on various pixels */
-				
-				detect(xsize, ysize, thick, ehole, xhisteh, neh, crrcresp, pixel, pixhist);
-
-/*  Write out the results to a file */
-
-             ofp = fopen(outfile, "a");
-             fprintf(ofp,"<cluster>\n");
-             fprintf(ofp,
-             "%f %f %f %f %f %f %d %f %f \n", 
-             vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, modytrack[ievent], pttrack[ievent]);
-             for(k = 1; k<=NCRRC; ++k) {
-                fprintf(ofp,"<time slice %f ps>\n", k*stimstp);
-                for (j = 0; j < TYSIZE; ++j) {
-					fprintf(ofp,
-					"%2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f\n", 
-					pixhist[k][0][j], pixhist[k][1][j], pixhist[k][2][j], pixhist[k][3][j], pixhist[k][4][j], 
-			        pixhist[k][5][j], pixhist[k][6][j], pixhist[k][7][j], pixhist[k][8][j], pixhist[k][9][j],
-					pixhist[k][10][j], pixhist[k][11][j], pixhist[k][12][j], pixhist[k][13][j], pixhist[k][14][j],
-					pixhist[k][15][j], pixhist[k][16][j], pixhist[k][17][j], pixhist[k][18][j], pixhist[k][19][j], 
-			        pixhist[k][20][j]);
-                }
-             }    
-             fclose(ofp);      
-          } 
-    
-	incr: ievent += 1;
-		  
-/* Save current random number state */    
-    
-          rluxut_(ivec);
-          isfp = fopen(seedfile, "w");
-          fprintf(isfp,
-          "%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x %d %d\n", 
-          ivec[0], ivec[1], ivec[2], ivec[3], ivec[4], ivec[5], ivec[6], ivec[7],
-          ivec[8], ivec[9], ivec[10], ivec[11], ivec[12], ivec[13], ivec[14], ivec[15],
-          ivec[16], ivec[17], ivec[18], ivec[19], ivec[20], ivec[21], ivec[22], ivec[23],
-          ivec[24], irun, ievent);
-          fclose(isfp);
-
-/*  Determine current time */
-
-          now = time(NULL);
-          nows = localtime(&now);
-          sec = (*nows).tm_sec;
-          min = (*nows).tm_min;
-          hour = (*nows).tm_hour;
-          yday = (*nows).tm_yday;
-
-		  if(ievent < 25) {printf("day %d at %02d:%02d:%02d, run %d, event %d, number of e-h pairs = %d\n", yday, hour, min, sec, irun, ievent, neh);}
-		  
+      /*  Calculate the offsets from the detector center to its front face */
+      
+      xoffset = locdir[0]/locdir[2] * thick / 2.;
+      yoffset = locdir[1]/locdir[2] * thick / 2.;
+      
+      if(locdir[2] < 0.) {
+	vect[2] = thick;
+      } else {
+	vect[2] = 0.;
+      }
+      
+      vect[0] = 3.*xsize * (rvec[0] - 0.5) + (vect[2] - thick/2.)*locdir[0]/locdir[2];
+      vect[1] = 3.*ysize * (rvec[1] - 0.5) + (vect[2] - thick/2.)*locdir[1]/locdir[2];
+      vect[3] = locdir[0]*ppiontrack[ievent];
+      vect[4] = locdir[1]*ppiontrack[ievent];
+      vect[5] = locdir[2]*ppiontrack[ievent];
+      
+      /*  Set Bfield z-direction for this event */
+      
+      bfield.f[2] = bfield_z;
+      if(cotbeta < 0.) {bfield.f[2] = -bfield_z;}
+      
+      /*  Propagate the track and make e-h pairs */
+      
+      
+      deposit(vect, thick, new_drde, NEHSTORE, xeh, &neh);
+      
+      
+      /*  don't process overflows */
+      
+      if(neh < NEHSTORE) {
+	
+	/*  Propagate the e's and h's (no signal after the sample time) */
+	
+	propag(thick, xsize, ysize, temp, flux, rhe, rhh, samptim, stimstp, ehole, neh, xeh, indeh, xhisteh);
+	
+	/*  Count e's and h's on various pixels */
+	
+	detect(xsize, ysize, thick, ehole, xhisteh, neh, crrcresp, pixel, pixhist);
+	
+	/*  Write out the results to a file */
+	
+	ofp = fopen(outfile, "a");
+	fprintf(ofp,"<cluster>\n");
+	fprintf(ofp,
+		"%f %f %f %f %f %f %d %f %f \n", 
+		vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, modytrack[ievent], pttrack[ievent]);
+	for(k = 1; k<=NCRRC; ++k) {
+	  fprintf(ofp,"<time slice %f ps>\n", k*stimstp);
+	  for (j = 0; j < TYSIZE; ++j) {
+	    fprintf(ofp,
+		    "%2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f\n", 
+		    pixhist[k][0][j], pixhist[k][1][j], pixhist[k][2][j], pixhist[k][3][j], pixhist[k][4][j], 
+		    pixhist[k][5][j], pixhist[k][6][j], pixhist[k][7][j], pixhist[k][8][j], pixhist[k][9][j],
+		    pixhist[k][10][j], pixhist[k][11][j], pixhist[k][12][j], pixhist[k][13][j], pixhist[k][14][j],
+		    pixhist[k][15][j], pixhist[k][16][j], pixhist[k][17][j], pixhist[k][18][j], pixhist[k][19][j], 
+		    pixhist[k][20][j]);
 	  }
-	  
-	  irun += 1;
-	  ievent = 0;
-   
-/*  Determine current time */
-   
-   now = time(NULL);
-   nows = localtime(&now);
-   sec = (*nows).tm_sec;
-   min = (*nows).tm_min;
-   hour = (*nows).tm_hour;
-   yday = (*nows).tm_yday;
-   
-   printf("End on day %d at %02d:%02d:%02d\n", yday, hour, min, sec);
-
+	}    
+	fclose(ofp);      
+      } 
+      
+    incr: ievent += 1;
+      
+      /* Save current random number state */    
+      
+      rluxut_(ivec);
+      isfp = fopen(seedfile, "w");
+      fprintf(isfp,
+	      "%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x%9x %d %d\n", 
+	      ivec[0], ivec[1], ivec[2], ivec[3], ivec[4], ivec[5], ivec[6], ivec[7],
+	      ivec[8], ivec[9], ivec[10], ivec[11], ivec[12], ivec[13], ivec[14], ivec[15],
+	      ivec[16], ivec[17], ivec[18], ivec[19], ivec[20], ivec[21], ivec[22], ivec[23],
+	      ivec[24], irun, ievent);
+      fclose(isfp);
+      
+      /*  Determine current time */
+      
+      now = time(NULL);
+      nows = localtime(&now);
+      sec = (*nows).tm_sec;
+      min = (*nows).tm_min;
+      hour = (*nows).tm_hour;
+      yday = (*nows).tm_yday;
+      
+      if(ievent < 25) {printf("day %d at %02d:%02d:%02d, run %d, event %d, number of e-h pairs = %d\n", yday, hour, min, sec, irun, ievent, neh);}
+      
+    }
+    
+    irun += 1;
+    ievent = 0;
+    
+    /*  Determine current time */
+    
+    now = time(NULL);
+    nows = localtime(&now);
+    sec = (*nows).tm_sec;
+    min = (*nows).tm_min;
+    hour = (*nows).tm_hour;
+    yday = (*nows).tm_yday;
+    
+    printf("End on day %d at %02d:%02d:%02d\n", yday, hour, min, sec);
+    
     
 } /* MAIN__ */
 
