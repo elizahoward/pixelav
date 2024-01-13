@@ -317,7 +317,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     
     
     while(ievent < ntrack) {
-      
+
       /* Generate initial position and direction of the track */
       
       ranlux_(rvec,&c__4);
@@ -347,7 +347,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
       vect[3] = locdir[0]*ppiontrack[ievent];
       vect[4] = locdir[1]*ppiontrack[ievent];
       vect[5] = locdir[2]*ppiontrack[ievent];
-      
+
       /*  Set Bfield z-direction for this event */
       
       bfield.f[2] = bfield_z;
@@ -355,9 +355,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
       
       /*  Propagate the track and make e-h pairs */
       
-      
       deposit(vect, thick, new_drde, NEHSTORE, xeh, &neh);
-      
       
       /*  don't process overflows */
       
@@ -415,9 +413,9 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
       min = (*nows).tm_min;
       hour = (*nows).tm_hour;
       yday = (*nows).tm_yday;
-      
-      if(ievent < 25) {printf("day %d at %02d:%02d:%02d, run %d, event %d, number of e-h pairs = %d\n", yday, hour, min, sec, irun, ievent, neh);}
-      
+
+      // if(ievent < 25) {printf("day %d at %02d:%02d:%02d, run %d, event %d, number of e-h pairs = %d\n", yday, hour, min, sec, irun, ievent, neh);}
+      printf("day %d at %02d:%02d:%02d, run %d, event %d, number of e-h pairs = %d\n", yday, hour, min, sec, irun, ievent, neh);
     }
     
     irun += 1;

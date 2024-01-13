@@ -1,404 +1,401 @@
 /* Subroutine */ int deposit(float *vect, float thick, int new_drde, int nmax, vect_or_f xeh[2][NEHSTORE], int *neh)
 {
-    /* Initialized data */
+  /* Initialized data */
+  
+  static float twome = (float)1.022e6;
+  static int fcall = -1;
 	
-    static float twome = (float)1.022e6;
-    static int fcall = -1;
-	
-    /* System generated locals */
-    int i__1;
-    double r__1, r__2, r__3;
-
-    /* Local variables */
-    static float path, rvec[5], phip, costd, phid;
-    static vect_or_f pxvec, pvvec, dxvec, dvvec;
-    static vect_or_f xin, avec, vzero, y1, y2;
-    vect_or_f d,x1,x2,vsplat,dvvec2,vb;
+  /* System generated locals */
+  int i__1;
+  double r__1, r__2, r__3;
+  
+  /* Local variables */
+  static float path, rvec[5], phip, costd, phid;
+  static vect_or_f pxvec, pvvec, dxvec, dvvec;
+  static vect_or_f xin, avec, vzero, y1, y2;
+  vect_or_f d,x1,x2,vsplat,dvvec2,vb;
 #ifdef __POWERPC__
-    static vect_or_c mask1, mask2;
+  static vect_or_c mask1, mask2;
 #endif
-    static int ierr;
-    static float cost, step, sint, e;
-    static int i__, npair;
-    static float ehnum, pdelta, ppion, etar, rumfp;
-    static float costp, rnorm, twopi, r1, r2, te, deltae;
-    static int ndelta;
-    static float pathmf;
-    static float phi;
-    static int ipr;
+  static int ierr;
+  static float cost, step, sint, e;
+  static int i__, npair;
+  static float ehnum, pdelta, ppion, etar, rumfp;
+  static float costp, rnorm, twopi, r1, r2, te, deltae;
+  static int ndelta;
+  static float pathmf;
+  static float phi;
+  static int ipr;
 	
-	
-	/* ********************************************************************** */
-	/* * This routine propagates a pion (position and direction described   * */
-	/* * by VECT) through a slab of silicon of thickness THICK (between     * */
-	/* * z=0 and z=THICK um).  During the passage, a total of NEH e- and    * */
-	/* * holes are created.  The positions and momenta of e- h are logged   * */
-	/* * in VEH.                                                            * */
-	/* * Parameters: VECT[6] - VECT[0-2] are the x,y,z coordinates of a     * */
-	/* *                         point on the track in microns,             * */
-	/* *                         VECT[3-5] are the velocity in um/ps        * */
-	/* *                 THICK - the thickness of the silicon in um         * */
-	/* *                  NMAX - the maximum number of e-hole pairs         * */
-	/* *     XEH[2][NMAX].f[4] - the positions of each e and h.  The 2nd    * */
-	/* *                         index = 0 for e and 1 for h.               * */
-	/* *                   NEH - the actual number of generated pairs       * */
-	/* ********************************************************************** */
-	
-	
-	/*  Twice the electron mass in eV */
-	
-	
-    /* Function Body */
-	
-	/*  The flag for first call */
-	
-	
-    if (fcall) {
-
-		twopi = acos((float)-1.) * (float)2.;
-		
-		/*  Define some numerical constant vectors */
-		
-		for (i__ = 0; i__ < 4; ++i__) {
-			vzero.f[i__] = (float)0.;
-		}
-		
-        pxvec.v=vzero.v;
-        pvvec.v=vzero.v;
-        dxvec.v=vzero.v;
-        dvvec.v=vzero.v;
-        xin.v = vzero.v;
-		
+  
+  /* ********************************************************************** */
+  /* * This routine propagates a pion (position and direction described   * */
+  /* * by VECT) through a slab of silicon of thickness THICK (between     * */
+  /* * z=0 and z=THICK um).  During the passage, a total of NEH e- and    * */
+  /* * holes are created.  The positions and momenta of e- h are logged   * */
+  /* * in VEH.                                                            * */
+  /* * Parameters: VECT[6] - VECT[0-2] are the x,y,z coordinates of a     * */
+  /* *                         point on the track in microns,             * */
+  /* *                         VECT[3-5] are the velocity in um/ps        * */
+  /* *                 THICK - the thickness of the silicon in um         * */
+  /* *                  NMAX - the maximum number of e-hole pairs         * */
+  /* *     XEH[2][NMAX].f[4] - the positions of each e and h.  The 2nd    * */
+  /* *                         index = 0 for e and 1 for h.               * */
+  /* *                   NEH - the actual number of generated pairs       * */
+  /* ********************************************************************** */
+  
+  
+  /*  Twice the electron mass in eV */
+  
+  
+  /* Function Body */
+  
+  /*  The flag for first call */
+  
+  if (fcall) {
+    
+    twopi = acos((float)-1.) * (float)2.;
+    
+    /*  Define some numerical constant vectors */
+    
+    for (i__ = 0; i__ < 4; ++i__) {
+      vzero.f[i__] = (float)0.;
+    }
+    
+    pxvec.v=vzero.v;
+    pvvec.v=vzero.v;
+    dxvec.v=vzero.v;
+    dvvec.v=vzero.v;
+    xin.v = vzero.v;
+    
 #ifdef __POWERPC__
-        mask1.c[0]=0x08;
-        mask1.c[1]=0x09;
-        mask1.c[2]=0x0a;
-        mask1.c[3]=0x0b;
-        mask1.c[4]=0x00;
-        mask1.c[5]=0x01;
-        mask1.c[6]=0x02;
-        mask1.c[7]=0x03;
-        mask1.c[8]=0x04;
-        mask1.c[9]=0x05;
-        mask1.c[10]=0x06;
-        mask1.c[11]=0x07;
-        mask1.c[12]=0x0c;
-        mask1.c[13]=0x0d;
-        mask1.c[14]=0x0e;
-        mask1.c[15]=0x0f;
-        mask2.c[0]=0x04;
-        mask2.c[1]=0x05;
-        mask2.c[2]=0x06;
-        mask2.c[3]=0x07;
-        mask2.c[4]=0x08;
-        mask2.c[5]=0x09;
-        mask2.c[6]=0x0a;
-        mask2.c[7]=0x0b;
-        mask2.c[8]=0x00;
-        mask2.c[9]=0x01;
-        mask2.c[10]=0x02;
-        mask2.c[11]=0x03;
-        mask2.c[12]=0x0c;
-        mask2.c[13]=0x0d;
-        mask2.c[14]=0x0e;
-        mask2.c[15]=0x0f;
-        
-        y1.v=vec_perm(bfield.v,vzero.v,mask1.v);
-        y2.v=vec_perm(bfield.v,vzero.v,mask2.v);		
+    mask1.c[0]=0x08;
+    mask1.c[1]=0x09;
+    mask1.c[2]=0x0a;
+    mask1.c[3]=0x0b;
+    mask1.c[4]=0x00;
+    mask1.c[5]=0x01;
+    mask1.c[6]=0x02;
+    mask1.c[7]=0x03;
+    mask1.c[8]=0x04;
+    mask1.c[9]=0x05;
+    mask1.c[10]=0x06;
+    mask1.c[11]=0x07;
+    mask1.c[12]=0x0c;
+    mask1.c[13]=0x0d;
+    mask1.c[14]=0x0e;
+    mask1.c[15]=0x0f;
+    mask2.c[0]=0x04;
+    mask2.c[1]=0x05;
+    mask2.c[2]=0x06;
+    mask2.c[3]=0x07;
+    mask2.c[4]=0x08;
+    mask2.c[5]=0x09;
+    mask2.c[6]=0x0a;
+    mask2.c[7]=0x0b;
+    mask2.c[8]=0x00;
+    mask2.c[9]=0x01;
+    mask2.c[10]=0x02;
+    mask2.c[11]=0x03;
+    mask2.c[12]=0x0c;
+    mask2.c[13]=0x0d;
+    mask2.c[14]=0x0e;
+    mask2.c[15]=0x0f;
+    
+    y1.v=vec_perm(bfield.v,vzero.v,mask1.v);
+    y2.v=vec_perm(bfield.v,vzero.v,mask2.v);		
 #else
-		
-		y1.v=_mm_set_ps(0,bfield.f[1],bfield.f[0],bfield.f[2]);
-		y2.v=_mm_set_ps(0,bfield.f[0],bfield.f[2],bfield.f[1]);
+    
+    y1.v=_mm_set_ps(0,bfield.f[1],bfield.f[0],bfield.f[2]);
+    y2.v=_mm_set_ps(0,bfield.f[0],bfield.f[2],bfield.f[1]);
 #endif
-		
-		fcall = 0;
-    }
-	
-/* Allow the field direction to change event to event */
-
+    
+    fcall = 0;
+  }
+  
+  /* Allow the field direction to change event to event */
+  
 #ifdef __POWERPC__
-	
-	y1.v=vec_perm(bfield.v,vzero.v,mask1.v);
-	y2.v=vec_perm(bfield.v,vzero.v,mask2.v);		
+  
+  y1.v=vec_perm(bfield.v,vzero.v,mask1.v);
+  y2.v=vec_perm(bfield.v,vzero.v,mask2.v);		
 #else
-	
-	y1.v=_mm_set_ps(0,bfield.f[1],bfield.f[0],bfield.f[2]);
-	y2.v=_mm_set_ps(0,bfield.f[0],bfield.f[2],bfield.f[1]);
+  
+  y1.v=_mm_set_ps(0,bfield.f[1],bfield.f[0],bfield.f[2]);
+  y2.v=_mm_set_ps(0,bfield.f[0],bfield.f[2],bfield.f[1]);
 #endif
-	
-	
-	/* Computing 2nd power */
-	r__1 = vect[3];
-	/* Computing 2nd power */
-	r__2 = vect[4];
-	/* Computing 2nd power */
-	r__3 = vect[5];
-	ppion = sqrt(r__1 * r__1 + r__2 * r__2 + r__3 * r__3);
-	
-	 e = eloss(ppion, 0.5, &path);
-	 pathmf = path;
-	
-/*  Copy the pion vector and insure normalization */
+  
+  
+  /* Computing 2nd power */
+  r__1 = vect[3];
+  /* Computing 2nd power */
+  r__2 = vect[4];
+  /* Computing 2nd power */
+  r__3 = vect[5];
+  ppion = sqrt(r__1 * r__1 + r__2 * r__2 + r__3 * r__3);
+  
+  e = eloss(ppion, 0.5, &path);
+  pathmf = path;
+  
+  /*  Copy the pion vector and insure normalization */
+  
+  for (i__ = 0; i__ < 3; ++i__) {
+    pxvec.f[i__] = vect[i__];
+  }
+  /* Computing 2nd power */
+  r__1 = vect[3];
+  /* Computing 2nd power */
+  r__2 = vect[4];
+  /* Computing 2nd power */
+  r__3 = vect[5];
+  rnorm = sqrt(r__1 * r__1 + r__2 * r__2 + r__3 * r__3);
+  for (i__ = 0; i__ < 3; ++i__) {
+    pvvec.f[i__] = vect[i__ + 3] / rnorm;
+  }
+  
+  
+  /*  The pion direction in polar angles */
+  
+  costp = pvvec.f[2];
+  phip = atan2((double)pvvec.f[1], (double)pvvec.f[0]);
+  
+  /*  Calculate the entry and exit points of the pion */
+  
+  if (costp > (float)0.) {
+    xin.f[0] = pxvec.f[0] + pvvec.f[0] / pvvec.f[2] * (-pxvec.f[2]);
+    xin.f[1] = pxvec.f[1] + pvvec.f[1] / pvvec.f[2] * (-pxvec.f[2]);
+    xin.f[2] = (float)0.;
+  } else {
+    xin.f[0] = pxvec.f[0] + pvvec.f[0] / pvvec.f[2] * (thick - pxvec.f[2]);
+    xin.f[1] = pxvec.f[1] + pvvec.f[1] / pvvec.f[2] * (thick - pxvec.f[2]);
+    xin.f[2] = thick;
+  }
+  
+  /*  Initialize the pion position vector */
+  
+  pxvec.v = xin.v;
 
-    for (i__ = 0; i__ < 3; ++i__) {
-	pxvec.f[i__] = vect[i__];
-    }
-/* Computing 2nd power */
-    r__1 = vect[3];
-/* Computing 2nd power */
-    r__2 = vect[4];
-/* Computing 2nd power */
-    r__3 = vect[5];
-    rnorm = sqrt(r__1 * r__1 + r__2 * r__2 + r__3 * r__3);
-    for (i__ = 0; i__ < 3; ++i__) {
-	pvvec.f[i__] = vect[i__ + 3] / rnorm;
-    }
+  /*  Now begin stepping through the silicon and generating e-h pairs */
+  
+  *neh = -1;
+ L100:
 
-	
-	/*  The pion direction in polar angles */
-	
-    costp = pvvec.f[2];
-    phip = atan2((double)pvvec.f[1], (double)pvvec.f[0]);
-	
-	/*  Calculate the entry and exit points of the pion */
-	
-    if (costp > (float)0.) {
-		xin.f[0] = pxvec.f[0] + pvvec.f[0] / pvvec.f[2] * (-pxvec.f[2]);
-		xin.f[1] = pxvec.f[1] + pvvec.f[1] / pvvec.f[2] * (-pxvec.f[2]);
-		xin.f[2] = (float)0.;
-    } else {
-		xin.f[0] = pxvec.f[0] + pvvec.f[0] / pvvec.f[2] * (thick - pxvec.f[2]);
-		xin.f[1] = pxvec.f[1] + pvvec.f[1] / pvvec.f[2] * (thick - pxvec.f[2]);
-		xin.f[2] = thick;
-    }
-	
-	/*  Initialize the pion position vector */
-	
-    pxvec.v = xin.v;
-	
-	/*  Now begin stepping through the silicon and generating e-h pairs */
-	
-    *neh = -1;
-L100:
-    ranlux_(rvec, &c__3);
-    r1 = (float)1. - rvec[0];
-    if (r1 < (float)1e-25) {
-		r1 = (float)1e-25;
-    }
-    vsplat.f[0] = -pathmf * log(r1);
+  ranlux_(rvec, &c__3);
+  r1 = (float)1. - rvec[0];
+  if (r1 < (float)1e-25) {
+    r1 = (float)1e-25;
+  }
+  vsplat.f[0] = -pathmf * log(r1);
+#ifdef __POWERPC__
+  avec.v = vec_splat(vsplat.v,0);
+  pxvec.v=vec_madd(avec.v,pvvec.v,pxvec.v);
+#else
+  avec.v = _mm_load_ps1(&vsplat.f[0]);
+  pxvec.v=_mm_add_ps(_mm_mul_ps(avec.v,pvvec.v),pxvec.v);
+#endif
+  if (pxvec.f[2] < 0. || pxvec.f[2] > thick) {
+    goto L200;
+  }
+  /*  If still in the Si, generate e- hole pairs */
+  
+  /*  Calculate the kinetic energy of the primary electron */
+  
+  r2 = rvec[1];
+  te = eloss(ppion, r2, &path);
+  
+  /*  Calculate the mean number of e-hole pairs */
+  
+  ehnum = te / (float)3.68;
+  
+  /*  Choose the actual number from a Poisson distribution */
+  rnpssn_(&ehnum, &npair, &ierr);
+  
+  /*  If the number is zero, take another step */
+  if (npair <= 0) {
+    goto L100;
+  }
+
+  /*  Create an e-h pair at the current location of the pion */
+  
+  if (*neh >= nmax-1) {
+    goto L200;
+  }
+  ++(*neh);
+  xeh[0][*neh].v = pxvec.v;
+  xeh[1][*neh].v = pxvec.v;
+  
+  /*  See if there are additional e-hole pairs to create */
+  
+  ndelta = npair - 1;
+  if (ndelta <= 0) {
+    goto L100;
+  }
+
+  /*  Determine the direction of the primary (Delta Ray) wrt the pion */
+  
+  cost = sqrt(te / (twome + te));
+  /* Computing 2nd power */
+  r__1 = cost;
+  sint = sqrt((float)1. - r__1 * r__1);
+  phi = twopi * rvec[2];
+  
+  /*  Construct the six vector for the delta ray (first wrt to the z axis) */
+  
+  dvvec.f[2] = cost;
+  dvvec.f[1] = sint * sin(phi);
+  dvvec.f[0] = sint * cos(phi);
+  
+  /*  now rotate the z-axis to the pion direction */
+
+  newdir(&dvvec, costp, phip);
+  
+  /*  One end begins at the current pion position */
+  
+  dxvec.v = pxvec.v;
+  
+  /*  Calculate the energy/e-h pair */
+  
+  deltae = te / npair;
+  
+  /*  Loop over each pair and step along the delta ray track */
+  
+  i__1 = ndelta;
+  for (ipr = 1; ipr <= i__1; ++ipr) {
+    
+    /*  Calculate the step size along the delta track */
+    
+    step = drde(te, new_drde) * deltae;
+    vsplat.f[0] = step;
 #ifdef __POWERPC__
     avec.v = vec_splat(vsplat.v,0);
-    pxvec.v=vec_madd(avec.v,pvvec.v,pxvec.v);
+    dxvec.v=vec_madd(avec.v,dvvec.v,dxvec.v);
 #else
     avec.v = _mm_load_ps1(&vsplat.f[0]);
-    pxvec.v=_mm_add_ps(_mm_mul_ps(avec.v,pvvec.v),pxvec.v);
+    dxvec.v=_mm_add_ps(_mm_mul_ps(avec.v,dvvec.v),dxvec.v);
 #endif
-    if (pxvec.f[2] < 0. || pxvec.f[2] > thick) {
-		goto L200;
-    }
-	
-	/*  If still in the Si, generate e- hole pairs */
-	
-	/*  Calculate the kinetic energy of the primary electron */
-	
-    r2 = rvec[1];
-    te = eloss(ppion, r2, &path);
-	
-	/*  Calculate the mean number of e-hole pairs */
-	
-    ehnum = te / (float)3.68;
-	
-	/*  Choose the actual number from a Poisson distribution */
-	
-    rnpssn_(&ehnum, &npair, &ierr);
-	
-	/*  If the number is zero, take another step */
-	
-    if (npair <= 0) {
-		goto L100;
-    }
-	
-	/*  Create an e-h pair at the current location of the pion */
-	
-    if (*neh >= nmax-1) {
-		goto L200;
-    }
-    ++(*neh);
-    xeh[0][*neh].v = pxvec.v;
-    xeh[1][*neh].v = pxvec.v;
-	
-	/*  See if there are additional e-hole pairs to create */
-	
-    ndelta = npair - 1;
-    if (ndelta <= 0) {
-		goto L100;
-    }
-	
-	/*  Determine the direction of the primary (Delta Ray) wrt the pion */
-	
-    cost = sqrt(te / (twome + te));
-	/* Computing 2nd power */
-    r__1 = cost;
-    sint = sqrt((float)1. - r__1 * r__1);
-    phi = twopi * rvec[2];
-	
-	/*  Construct the six vector for the delta ray (first wrt to the z axis) */
-	
-    dvvec.f[2] = cost;
-    dvvec.f[1] = sint * sin(phi);
-    dvvec.f[0] = sint * cos(phi);
-	
-	/*  now rotate the z-axis to the pion direction */
-	
-    newdir(&dvvec, costp, phip);
-	
-	/*  One end begins at the current pion position */
-	
-    dxvec.v = pxvec.v;
-	
-	/*  Calculate the energy/e-h pair */
-	
-    deltae = te / npair;
-	
-	/*  Loop over each pair and step along the delta ray track */
-	
-    i__1 = ndelta;
-    for (ipr = 1; ipr <= i__1; ++ipr) {
-		
-		/*  Calculate the step size along the delta track */
-		
-	    step = drde(te, new_drde) * deltae;
-        vsplat.f[0] = step;
-#ifdef __POWERPC__
-        avec.v = vec_splat(vsplat.v,0);
-        dxvec.v=vec_madd(avec.v,dvvec.v,dxvec.v);
-#else
-        avec.v = _mm_load_ps1(&vsplat.f[0]);
-        dxvec.v=_mm_add_ps(_mm_mul_ps(avec.v,dvvec.v),dxvec.v);
-#endif
-		
-		/* Now add magnetic deflection to the delta track */
-		
-        pdelta = sqrt(te*te+twome*te);
-        if (pdelta > 32000.) {
-			
+    
+    /* Now add magnetic deflection to the delta track */
+  
+    pdelta = sqrt(te*te+twome*te);
+    if (pdelta > 32000.) {
+      
 #ifdef __POWERPC__		       
-			/*  Calculate the cross product of the velocity and the b-field */
-			
-			x1.v=vec_perm(dvvec.v,vzero.v,mask1.v);
-			x2.v=vec_perm(dvvec.v,vzero.v,mask2.v);
-			d.v=vec_madd(x2.v,y1.v,vzero.v);
-			vb.v=vec_nmsub(x1.v,y2.v,d.v);
-			
-			/* update the direction vector  */
-			
-			vsplat.f[0] = -300.*step/pdelta;
-			avec.v = vec_splat(vsplat.v,0);
-			dvvec.v=vec_madd(avec.v,vb.v,dvvec.v);
-			
-			/* update the position vector  */
-			
-			vsplat.f[0] = vsplat.f[0] * step/2.;
-			avec.v = vec_splat(vsplat.v,0);
-			dxvec.v=vec_madd(avec.v,vb.v,dxvec.v);
-			
-			/* renorm the direction vector  */
-			
-			dvvec2.v = vec_madd(dvvec.v,dvvec.v,vzero.v);
-			vsplat.f[0] = 1./sqrt(dvvec2.f[0]+dvvec2.f[1]+dvvec2.f[2]);
-			avec.v = vec_splat(vsplat.v,0);
-			dvvec.v=vec_madd(avec.v,dvvec.v,vzero.v);
+      /*  Calculate the cross product of the velocity and the b-field */
+      
+      x1.v=vec_perm(dvvec.v,vzero.v,mask1.v);
+      x2.v=vec_perm(dvvec.v,vzero.v,mask2.v);
+      d.v=vec_madd(x2.v,y1.v,vzero.v);
+      vb.v=vec_nmsub(x1.v,y2.v,d.v);
+      
+      /* update the direction vector  */
+      
+      vsplat.f[0] = -300.*step/pdelta;
+      avec.v = vec_splat(vsplat.v,0);
+      dvvec.v=vec_madd(avec.v,vb.v,dvvec.v);
+      
+      /* update the position vector  */
+      
+      vsplat.f[0] = vsplat.f[0] * step/2.;
+      avec.v = vec_splat(vsplat.v,0);
+      dxvec.v=vec_madd(avec.v,vb.v,dxvec.v);
+      
+      /* renorm the direction vector  */
+      
+      dvvec2.v = vec_madd(dvvec.v,dvvec.v,vzero.v);
+      vsplat.f[0] = 1./sqrt(dvvec2.f[0]+dvvec2.f[1]+dvvec2.f[2]);
+      avec.v = vec_splat(vsplat.v,0);
+      dvvec.v=vec_madd(avec.v,dvvec.v,vzero.v);
 #else
-			/*  Calculate the cross product of the velocity and the b-field */
-			
-			x1.v=_mm_set_ps(0,dvvec.f[1],dvvec.f[0],dvvec.f[2]);
-			x2.v=_mm_set_ps(0,dvvec.f[0],dvvec.f[2],dvvec.f[1]);
-			d.v=_mm_mul_ps(x2.v,y1.v);
-			vb.v=_mm_sub_ps(d.v,_mm_mul_ps(x1.v,y2.v));
-			
-			/* update the direction vector  */
-			
-			vsplat.f[0] = -300.*step/pdelta;
-			avec.v = _mm_load_ps1(&vsplat.f[0]);
-			dvvec.v=_mm_add_ps(_mm_mul_ps(avec.v,vb.v),dvvec.v);
-			
-			/* update the position vector  */
-			
-			vsplat.f[0] = vsplat.f[0] * step/2.;
-			avec.v = _mm_load_ps1(&vsplat.f[0]);
-			dxvec.v=_mm_add_ps(_mm_mul_ps(avec.v,vb.v),dxvec.v);;
-			
-			/* renorm the direction vector  */
-			
-			dvvec2.v = _mm_mul_ps(dvvec.v,dvvec.v);
-			vsplat.f[0] = 1./sqrt(dvvec2.f[0]+dvvec2.f[1]+dvvec2.f[2]);
-			avec.v = _mm_load_ps1(&vsplat.f[0]);
-			dvvec.v=_mm_mul_ps(avec.v,dvvec.v);
+      /*  Calculate the cross product of the velocity and the b-field */
+      
+      x1.v=_mm_set_ps(0,dvvec.f[1],dvvec.f[0],dvvec.f[2]);
+      x2.v=_mm_set_ps(0,dvvec.f[0],dvvec.f[2],dvvec.f[1]);
+      d.v=_mm_mul_ps(x2.v,y1.v);
+      vb.v=_mm_sub_ps(d.v,_mm_mul_ps(x1.v,y2.v));
+      
+      /* update the direction vector  */
+      
+      vsplat.f[0] = -300.*step/pdelta;
+      avec.v = _mm_load_ps1(&vsplat.f[0]);
+      dvvec.v=_mm_add_ps(_mm_mul_ps(avec.v,vb.v),dvvec.v);
+      
+      /* update the position vector  */
+      
+      vsplat.f[0] = vsplat.f[0] * step/2.;
+      avec.v = _mm_load_ps1(&vsplat.f[0]);
+      dxvec.v=_mm_add_ps(_mm_mul_ps(avec.v,vb.v),dxvec.v);;
+      
+      /* renorm the direction vector  */
+      
+      dvvec2.v = _mm_mul_ps(dvvec.v,dvvec.v);
+      vsplat.f[0] = 1./sqrt(dvvec2.f[0]+dvvec2.f[1]+dvvec2.f[2]);
+      avec.v = _mm_load_ps1(&vsplat.f[0]);
+      dvvec.v=_mm_mul_ps(avec.v,dvvec.v);
 #endif
-			
-			/* Add multiple scattering if NIST Estar is chosen */ 
-			
-			if(new_drde) {
-				rumfp = (float)rutherford(te, &etar);
-				ranlux_(rvec, &c__1);
-				if(rvec[0] < step/rumfp) {
+      
+      /* Add multiple scattering if NIST Estar is chosen */ 
+      
+      if(new_drde) {
+	rumfp = (float)rutherford(te, &etar);
+	ranlux_(rvec, &c__1);
+	if(rvec[0] < step/rumfp) {
 					
-					/* Rutherford scatter the delta ray */	
-					/*  First get the current direction */
-					
-					costd = dvvec.f[2];
-					phid = atan2((double)dvvec.f[1], (double)dvvec.f[0]);
-					
-					/* Next, get two random numbers */
-					
-					ranlux_(rvec, &c__2);
-					
-					/*  Determine the direction of the scattered electron wrt the incident one */
-					
-					cost = (rvec[0]-etar+2.*etar*rvec[0])/(rvec[0]+etar);
-					/* Computing 2nd power */
-					r__1 = cost;
-					sint = sqrt((float)1. - r__1 * r__1);
-					phi = twopi * rvec[1];
-					
-					/*  Construct the direction vector for the scattered delta ray (first wrt to the z axis) */
-					
-					dvvec.f[2] = cost;
-					dvvec.f[1] = sint * sin(phi);
-					dvvec.f[0] = sint * cos(phi);
-					
-					/*  now rotate the z-axis to the incident direction */
-					
-					newdir(&dvvec, costd, phid);
-					
-				}
-				
-			}
-			
-		}
-        
-		if (dxvec.f[2] <= (float)0. || dxvec.f[2] >= thick) {goto L100;}
-		
-		/*  Create an e-h pair at the current location of the delta ray */
-		
-		if (*neh >= nmax-1) {goto L200;}
-		++(*neh);
-		xeh[0][*neh].v = dxvec.v;
-		xeh[1][*neh].v = dxvec.v;
-		
-		/*  Decrement the energy and loop back */
-		
-		te -= deltae;
-		if(te < 1.) {te = 1. ;}
+	  /* Rutherford scatter the delta ray */	
+	  /*  First get the current direction */
+	  
+	  costd = dvvec.f[2];
+	  phid = atan2((double)dvvec.f[1], (double)dvvec.f[0]);
+	  
+	  /* Next, get two random numbers */
+	  
+	  ranlux_(rvec, &c__2);
+	  
+	  /*  Determine the direction of the scattered electron wrt the incident one */
+	  
+	  cost = (rvec[0]-etar+2.*etar*rvec[0])/(rvec[0]+etar);
+	  /* Computing 2nd power */
+	  r__1 = cost;
+	  sint = sqrt((float)1. - r__1 * r__1);
+	  phi = twopi * rvec[1];
+	  
+	  /*  Construct the direction vector for the scattered delta ray (first wrt to the z axis) */
+	  
+	  dvvec.f[2] = cost;
+	  dvvec.f[1] = sint * sin(phi);
+	  dvvec.f[0] = sint * cos(phi);
+	  
+	  /*  now rotate the z-axis to the incident direction */
+	  
+	  newdir(&dvvec, costd, phid);
+	  
+	}
+	
+      }
+      
     }
-    goto L100;
-L200: (*neh) = (*neh)+1;
-    return 0;
+  
+    if (dxvec.f[2] <= (float)0. || dxvec.f[2] >= thick) {goto L100;}
+    
+    /*  Create an e-h pair at the current location of the delta ray */
+    
+    if (*neh >= nmax-1) {goto L200;}
+    ++(*neh);
+    xeh[0][*neh].v = dxvec.v;
+    xeh[1][*neh].v = dxvec.v;
+
+    /*  Decrement the energy and loop back */
+    
+    te -= deltae;
+    if(te < 1.) {te = 1. ;}
+  }
+  goto L100;
+ L200: (*neh) = (*neh)+1;
+  return 0;
 } /* deposit */
 
 /* Subroutine */ int propag(float thick, float xsize, float ysize, float temp, float flux[2], float rhe, float rhh, float max_drift_time, float stimstp, int ehole, int neh, vect_or_f xeh[2][NEHSTORE], int indeh[2][NEHSTORE], vect_or_f xhisteh[NCRRC][2][NEHSTORE])
 {
-	/* Initialized data */
+  /* Initialized data */
 	
 	static float rh[2] = { (float)1.12,(float).9 };
 	static float qeh[2] = { (float)-1.,(float)1. };
