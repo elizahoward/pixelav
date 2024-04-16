@@ -155,6 +155,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 
     FILE *isfp, *iifp, *ofp, *icfp;
 
+    char track_list[80] = "track_list.txt";
     
     /* If no arguments, quit */
 	
@@ -171,42 +172,55 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
       runsize = 30000;
       printf("Skipping %d blocks of runsize %d \n", frun-1, runsize);
     }
-    
-    /* If two arguments, second could be a number of runs or a fork instruction */
-	
-    if(argc == 3) {
+
+    /* 2 arguments = first run number, second track list */
+    if(argc == 5) {
       sscanf(argv[1],"%d", &frun);
       if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;}
-      if(*argv[2] == 'f') {runsize = 30000;} else {
-	sscanf(argv[2],"%d", &runsize);
-	if(runsize < 1 || runsize > NMUON) {printf("runsize %d is illegal, quit \n", runsize); return 0;}
-      }	
+      runsize = 30000;
       printf("Skipping %d blocks of runsize %d \n", frun-1, runsize);
-      if(*argv[2] == 'f') {
-	procid = fork();
-	if(procid) {
-	  printf("Forking process, id = %d\n", procid);
-	  return 0; 
-	}			
-      }
+      sscanf(argv[2],"%s", &track_list);
+      sscanf(argv[3],"%s", &outfile);
+      sscanf(argv[4],"%s", &seedfile);
+      printf("Track list file: %s \n", track_list);
     }
-	
-    /* If three arguments, retrieve first run, number of runs, and possible fork command */
     
-    if(argc == 4) {
-      sscanf(argv[1],"%d", &frun);
-      if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;}
-      sscanf(argv[2],"%d", &runsize);
-      if(runsize < 1 || runsize > NMUON) {printf("runsize %d is illegal, quit \n", runsize); return 0;}
-      printf("Skipping %d blocks of runsize %d \n", frun-1, runsize);
-      if(*argv[3] == 'f') {
-	procid = fork();
-	if(procid) {
-	  printf("Forking process, id = %d\n", procid);
-	  return 0; 
-	}			
-      }
-    }
+    /* /\* If two arguments, second could be a number of runs or a fork instruction *\/ */
+	
+    /* if(argc == 3) { */
+    /*   sscanf(argv[1],"%d", &frun); */
+    /*   if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;} */
+    /*   if(*argv[2] == 'f') {runsize = 30000;} */
+    /*   else { */
+    /* 	sscanf(argv[2],"%d", &runsize); */
+    /* 	if(runsize < 1 || runsize > NMUON) {printf("runsize %d is illegal, quit \n", runsize); return 0;} */
+    /*   }	 */
+    /*   printf("Skipping %d blocks of runsize %d \n", frun-1, runsize); */
+    /*   if(*argv[2] == 'f') { */
+    /* 	procid = fork(); */
+    /* 	if(procid) { */
+    /* 	  printf("Forking process, id = %d\n", procid); */
+    /* 	  return 0;  */
+    /* 	}			 */
+    /*   } */
+    /* } */
+	
+    /* /\* If three arguments, retrieve first run, number of runs, and possible fork command *\/ */
+    
+    /* if(argc == 4) { */
+    /*   sscanf(argv[1],"%d", &frun); */
+    /*   if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;} */
+    /*   sscanf(argv[2],"%d", &runsize); */
+    /*   if(runsize < 1 || runsize > NMUON) {printf("runsize %d is illegal, quit \n", runsize); return 0;} */
+    /*   printf("Skipping %d blocks of runsize %d \n", frun-1, runsize); */
+    /*   if(*argv[3] == 'f') { */
+    /* 	procid = fork(); */
+    /* 	if(procid) { */
+    /* 	  printf("Forking process, id = %d\n", procid); */
+    /* 	  return 0;  */
+    /* 	}			 */
+    /*   } */
+    /* } */
 	
     /*  Define the detector parameters from the global initialization file */
 	
@@ -219,8 +233,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     }
 	
     /*  read track list */
-	
-    icfp = fopen("track_list.txt", "r");
+    icfp = fopen(track_list, "r");
     if (icfp==NULL) {
       printf("no track_list.txt file found/n");
       return 0;
@@ -255,9 +268,8 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     fileind = filebase + frun;
     
     /*  Create a seedfile name for this run */
-	
     
-    sprintf(seedfile,"seedfile%5.5d",fileind);
+    // sprintf(seedfile,"seedfile%5.5d",fileind);
 	
     /*  Determine current time */
 
@@ -300,10 +312,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     }
     
     /*  Create a filename for this run */
-    
-
-    sprintf(outfile,"pixel_clusters_d%5.5d.out",fileind);
-        
+    // sprintf(outfile,"pixel_clusters_d%5.5d.out",fileind);
     
     if(ievent==0 && frun == 1) {
 		
