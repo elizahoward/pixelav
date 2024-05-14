@@ -150,12 +150,12 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     static int fileind, filebase, fileoff, runsize, irun, ievent, frun, nskip, procid, new_drde, ehole;
     static float rvec[4], pimom, xoffset, yoffset, lenxmin, lenxmax, deltaxlen, lenymin, lenymax, deltaylen, locdir[3], cotalpha, cotbeta;
     static float clusxlen, clusylen;
-    static char outfile[80], seedfile[80];
+    static char outfile[500], seedfile[500];
     static double alpha;
 
     FILE *isfp, *iifp, *ofp, *icfp;
 
-    char track_list[80] = "track_list.txt";
+    char track_list[500] = "track_list.txt";
     
     /* If no arguments, quit */
 	
@@ -223,9 +223,9 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     /* } */
 	
     /*  Define the detector parameters from the global initialization file */
-	
+
     pixinit(&pimom, &thick, &xsize, &ysize, &temp, flux, &rhe, &rhh, &peaktim, &samptim, &ehole, &new_drde, &filebase);
-    
+
     crrc(peaktim, samptim, &stimstp, crrcresp);
     printf("sample time %f \n", stimstp);
     for(j=0; j<NCRRC; ++j) {
@@ -251,12 +251,12 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 	if(ntrack >= nskip) break;
       }		
     }
-	
+
     /* Now read-in track angles and momenta to process */
 	
     ntrack = 0;
     while(fscanf(icfp,"%f %f %f %d %f %f %f", &cotatrack[ntrack], &cotbtrack[ntrack], &ppiontrack[ntrack], &flipped[ntrack], &modxtrack[ntrack], &modytrack[ntrack], &pttrack[ntrack]) != EOF) {
-      ++ntrack; 
+      ++ntrack;
       if(ntrack == NMUON) break;
       if(ntrack >= runsize) break;
     }
