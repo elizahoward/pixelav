@@ -235,7 +235,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     /*  read track list */
     icfp = fopen(track_list, "r");
     if (icfp==NULL) {
-      printf("no track_list.txt file found/n");
+      printf("no track_list.txt file found\n");
       return 0;
     }
 	
