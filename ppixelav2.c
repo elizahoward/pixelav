@@ -151,6 +151,7 @@
   rnorm = sqrt(r__1 * r__1 + r__2 * r__2 + r__3 * r__3);
   for (i__ = 0; i__ < 3; ++i__) {
     pvvec.f[i__] = vect[i__ + 3] / rnorm;
+	printf("\n pvvec: %f \n", pvvec.f[i__]);
   }
   
   
@@ -174,6 +175,8 @@
   /*  Initialize the pion position vector */
   
   pxvec.v = xin.v;
+
+  printf("\n\nxin: %f, %f, %f \npxvec: %f, %f, %f \npvvec: %f, %f, %f \n\n", xin.f[0], xin.f[1], xin.f[2], pxvec.f[1], pxvec.f[2],  pxvec.f[3], pvvec.f[1], pvvec.f[2],  pvvec.f[3]);
 
   /*  Now begin stepping through the silicon and generating e-h pairs */
   

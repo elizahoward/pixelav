@@ -337,8 +337,8 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
       locdir[2] = 1./sqrt((double)(1.+cotbeta*cotbeta+cotalpha*cotalpha));
 	/* track travels in the E-field direction in the unflipped coordinate system */
       if(flipped[ievent] == 0) locdir[2] = -locdir[2];
-      locdir[0] = cotbeta*locdir[2];
-      locdir[1] = cotalpha*locdir[2];
+      locdir[0] = cotalpha*locdir[2];
+      locdir[1] = cotbeta*locdir[2];
 			   
       /*  Calculate the offsets from the detector center to its front face */
       
@@ -351,11 +351,13 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 	vect[2] = 0.;
       }
       
-      vect[0] = 3.*xsize * (rvec[0] - 0.5) + (vect[2] - thick/2.)*locdir[0]/locdir[2];
-      vect[1] = 3.*ysize * (rvec[1] - 0.5) + (vect[2] - thick/2.)*locdir[1]/locdir[2];
+      vect[0] = 3.*xsize * (rvec[0] - 0.5) + (vect[2] - thick/2.)*cotalpha;
+      vect[1] = 3.*ysize * (rvec[1] - 0.5) + (vect[2] - thick/2.)*cotbeta;
       vect[3] = locdir[0]*ppiontrack[ievent];
       vect[4] = locdir[1]*ppiontrack[ievent];
       vect[5] = locdir[2]*ppiontrack[ievent];
+
+      printf("\n\n vect: %f, %f, %f, %f, %f, %f \n\n", vect[0], vect[1], vect[2], vect[3], vect[4], vect[5]);
 
       /*  Set Bfield z-direction for this event */
       
