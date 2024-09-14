@@ -151,7 +151,7 @@
   rnorm = sqrt(r__1 * r__1 + r__2 * r__2 + r__3 * r__3);
   for (i__ = 0; i__ < 3; ++i__) {
     pvvec.f[i__] = vect[i__ + 3] / rnorm;
-	printf("\n pvvec: %f \n", pvvec.f[i__]);
+	printf("\n pvvec[%d]: %f \n", i__, pvvec.f[i__]);
   }
   
   
