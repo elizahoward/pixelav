@@ -133,8 +133,8 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 
     /* Local variables */
     static float vect[6];
-    static float cotatrack[NMUON], cotbtrack[NMUON], ppiontrack[NMUON], modxtrack[NMUON], modytrack[NMUON], pttrack[NMUON];
-    static int flipped[NMUON];
+    static float cotatrack[NMUON], cotbtrack[NMUON], ppiontrack[NMUON], modxtrack[NMUON], modytrack[NMUON], pttrack[NMUON], PID0[NMUON];
+    static int flipped[NMUON], PID[NMUON];
     static float thick, xsize, ysize, temp, flux[2], rhe, rhh, peaktim, samptim, stimstp;    
     static int i__, indeh[2][NEHSTORE]	/* was [2][300000] */;
     static int nto2in, lux, initseed, ivec[25];
@@ -152,6 +152,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     static float clusxlen, clusylen;
     static char outfile[500], seedfile[500];
     static double alpha;
+    float scale = 1;
 
     FILE *isfp, *iifp, *ofp, *icfp;
 
@@ -246,7 +247,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     if(nskip > 0) {
       
       ntrack = 0;
-      while(fscanf(icfp,"%f %f %f %d %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &modxtrack[0], &modytrack[0], &pttrack[0]) != EOF) {
+      while(fscanf(icfp,"%f %f %f %d %f %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &modxtrack[0], &modytrack[0], &pttrack[0], &PID0[0]) != EOF) {
 	++ntrack; 
 	if(ntrack >= nskip) break;
       }		
@@ -255,7 +256,8 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     /* Now read-in track angles and momenta to process */
 	
     ntrack = 0;
-    while(fscanf(icfp,"%f %f %f %d %f %f %f", &cotatrack[ntrack], &cotbtrack[ntrack], &ppiontrack[ntrack], &flipped[ntrack], &modxtrack[ntrack], &modytrack[ntrack], &pttrack[ntrack]) != EOF) {
+    while(fscanf(icfp,"%f %f %f %d %f %f %f %f", &cotatrack[ntrack], &cotbtrack[ntrack], &ppiontrack[ntrack], &flipped[ntrack], &modxtrack[ntrack], &modytrack[ntrack], &pttrack[ntrack], &PID0[ntrack]) != EOF) {
+      PID[ntrack] = (int)PID0[ntrack];
       ++ntrack;
       if(ntrack == NMUON) break;
       if(ntrack >= runsize) break;
@@ -346,23 +348,34 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
       yoffset = locdir[1]/locdir[2] * thick / 2.;
       
       if(locdir[2] < 0.) {
-	vect[2] = thick;
+	      vect[2] = thick;
       } else {
-	vect[2] = 0.;
+	      vect[2] = 0.;
+      }
+
+      if (PID[ievent]==11) {
+        scale = 139.57/0.511;
+      }
+      else if (PID[ievent]==13){
+        scale = 139.57/105.7;
+      }
+      else if (PID[ievent]==211){
+        scale = 1;
       }
       
       vect[0] = 3.*xsize * (rvec[0] - 0.5) + (vect[2] - thick/2.)*cotalpha;
       vect[1] = 3.*ysize * (rvec[1] - 0.5) + (vect[2] - thick/2.)*cotbeta;
-      vect[3] = locdir[0]*ppiontrack[ievent];
-      vect[4] = locdir[1]*ppiontrack[ievent];
-      vect[5] = locdir[2]*ppiontrack[ievent];
+      vect[3] = locdir[0]*ppiontrack[ievent]*scale;
+      vect[4] = locdir[1]*ppiontrack[ievent]*scale;
+      vect[5] = locdir[2]*ppiontrack[ievent]*scale;
 
-      printf("\n\n vect: %f, %f, %f, %f, %f, %f \n\n", vect[0], vect[1], vect[2], vect[3], vect[4], vect[5]);
+      //printf("\n\n vect: %f, %f, %f, %f, %f, %f \n\n", vect[0], vect[1], vect[2], vect[3], vect[4], vect[5]);
 
       /*  Set Bfield z-direction for this event */
       
       bfield.f[2] = bfield_z;
-      if(cotbeta < 0.) {bfield.f[2] = -bfield_z;}
+      if(cotalpha < 0.) {bfield.f[2] = -bfield_z;}
+      //printf("\n\n bfield: (%f, %f, %f)\n\n", bfield.f[0], bfield.f[1], bfield.f[2]);
       
       /*  Propagate the track and make e-h pairs */
       
@@ -385,8 +398,8 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 	ofp = fopen(outfile, "a");
 	fprintf(ofp,"<cluster>\n");
 	fprintf(ofp,
-		"%f %f %f %f %f %f %d %f %f \n", 
-		vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, modytrack[ievent], pttrack[ievent]);
+		"%f %f %f %f %f %f %d %f %f %d \n", 
+		vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, modytrack[ievent], pttrack[ievent], PID[ievent]);
 	for(k = 1; k<=NCRRC; ++k) {
 	  fprintf(ofp,"<time slice %f ps>\n", k*stimstp);
 	  for (j = 0; j < TYSIZE; ++j) {
