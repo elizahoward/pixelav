@@ -11,7 +11,7 @@
 /* beginning of the ascii header in pixel.init (7/05/05) */
 /* Add pion energy dependence of cross sections from H. Bichsel.  Use magnitude of pion direction to */
 /* store the information.  Assumes 45 GeV if not specified in old files (11/10/05) */
-/* Change pixel array to 21x7 to accommodate wider range of input angles (04/10/06) */
+/* Change pixel array to 21x to accommodate wider range of input angles (04/10/06) */
 /* Version to automatically generate multiple output files while incrementing the cluster length */
 /* Add electron hall factor rhe to input list */
 /* Add NIST Estar inverse stopping powers: drde (11/15/2007) */
@@ -27,6 +27,7 @@
 /* Randomize impact point over a 3x3 pixel array */
 /* Pass through module impact y and track pT */
 /* Fix event to event momentum dependence of charge deposition (07/18/2022) */
+/* Pass through the z coordinate of the hit in the barrel, the hit time, and the particle PDGID (01/08/25)*/
 
 
 #include <math.h>
@@ -133,8 +134,8 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 
     /* Local variables */
     static float vect[6];
-    static float cotatrack[NMUON], cotbtrack[NMUON], ppiontrack[NMUON], modxtrack[NMUON], modytrack[NMUON], pttrack[NMUON];
-    static int flipped[NMUON];
+    static float cotatrack[NMUON], cotbtrack[NMUON], ppiontrack[NMUON], modxtrack[NMUON], modytrack[NMUON], pttrack[NMUON], hit_z[NMUON], hittime[NMUON], PID0[NMUON];
+    static int flipped[NMUON], PID[NMUON];
     static float thick, xsize, ysize, temp, flux[2], rhe, rhh, peaktim, samptim, stimstp;    
     static int i__, indeh[2][NEHSTORE]	/* was [2][300000] */;
     static int nto2in, lux, initseed, ivec[25];
@@ -152,6 +153,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     static float clusxlen, clusylen;
     static char outfile[500], seedfile[500];
     static double alpha;
+    float scale = 1;
 
     FILE *isfp, *iifp, *ofp, *icfp;
 
@@ -235,7 +237,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     /*  read track list */
     icfp = fopen(track_list, "r");
     if (icfp==NULL) {
-      printf("no track_list.txt file found/n");
+      printf("no track_list.txt file found\n");
       return 0;
     }
 	
@@ -246,7 +248,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     if(nskip > 0) {
       
       ntrack = 0;
-      while(fscanf(icfp,"%f %f %f %d %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &modxtrack[0], &modytrack[0], &pttrack[0]) != EOF) {
+      while(fscanf(icfp,"%f %f %f %d %f %f %f %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &modxtrack[0], &modytrack[0], &pttrack[0], &hit_z[0], &hittime[0], &PID0[0]) != EOF) {
 	++ntrack; 
 	if(ntrack >= nskip) break;
       }		
@@ -255,7 +257,9 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     /* Now read-in track angles and momenta to process */
 	
     ntrack = 0;
-    while(fscanf(icfp,"%f %f %f %d %f %f %f", &cotatrack[ntrack], &cotbtrack[ntrack], &ppiontrack[ntrack], &flipped[ntrack], &modxtrack[ntrack], &modytrack[ntrack], &pttrack[ntrack]) != EOF) {
+    while(fscanf(icfp,"%f %f %f %d %f %f %f %f %f %f", &cotatrack[ntrack], &cotbtrack[ntrack], &ppiontrack[ntrack], &flipped[ntrack], &modxtrack[ntrack], &modytrack[ntrack], &pttrack[ntrack], &hit_z[ntrack], &hittime[ntrack], &PID0[ntrack]) != EOF) {
+      //printf("theta = %f \n", hit_z[ntrack]);
+      PID[ntrack] = (int)PID0[ntrack];
       ++ntrack;
       if(ntrack == NMUON) break;
       if(ntrack >= runsize) break;
@@ -337,8 +341,8 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
       locdir[2] = 1./sqrt((double)(1.+cotbeta*cotbeta+cotalpha*cotalpha));
 	/* track travels in the E-field direction in the unflipped coordinate system */
       if(flipped[ievent] == 0) locdir[2] = -locdir[2];
-      locdir[0] = cotbeta*locdir[2];
-      locdir[1] = cotalpha*locdir[2];
+      locdir[0] = cotalpha*locdir[2];
+      locdir[1] = cotbeta*locdir[2];
 			   
       /*  Calculate the offsets from the detector center to its front face */
       
@@ -346,21 +350,34 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
       yoffset = locdir[1]/locdir[2] * thick / 2.;
       
       if(locdir[2] < 0.) {
-	vect[2] = thick;
+	      vect[2] = thick;
       } else {
-	vect[2] = 0.;
+	      vect[2] = 0.;
+      }
+
+      if (PID[ievent]==11) {
+        scale = 139.57/0.511;
+      }
+      else if (PID[ievent]==13){
+        scale = 139.57/105.7;
+      }
+      else if (PID[ievent]==211){
+        scale = 1;
       }
       
-      vect[0] = 3.*xsize * (rvec[0] - 0.5) + (vect[2] - thick/2.)*locdir[0]/locdir[2];
-      vect[1] = 3.*ysize * (rvec[1] - 0.5) + (vect[2] - thick/2.)*locdir[1]/locdir[2];
-      vect[3] = locdir[0]*ppiontrack[ievent];
-      vect[4] = locdir[1]*ppiontrack[ievent];
-      vect[5] = locdir[2]*ppiontrack[ievent];
+      vect[0] = 3.*xsize * (rvec[0] - 0.5) + (vect[2] - thick/2.)*cotalpha;
+      vect[1] = 3.*ysize * (rvec[1] - 0.5) + (vect[2] - thick/2.)*cotbeta;
+      vect[3] = locdir[0]*ppiontrack[ievent]*scale;
+      vect[4] = locdir[1]*ppiontrack[ievent]*scale;
+      vect[5] = locdir[2]*ppiontrack[ievent]*scale;
+
+      //printf("\n\n vect: %f, %f, %f, %f, %f, %f \n\n", vect[0], vect[1], vect[2], vect[3], vect[4], vect[5]);
 
       /*  Set Bfield z-direction for this event */
       
       bfield.f[2] = bfield_z;
-      if(cotbeta < 0.) {bfield.f[2] = -bfield_z;}
+      if(cotalpha < 0.) {bfield.f[2] = -bfield_z;}
+      //printf("\n\n bfield: (%f, %f, %f)\n\n", bfield.f[0], bfield.f[1], bfield.f[2]);
       
       /*  Propagate the track and make e-h pairs */
       
@@ -383,8 +400,8 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 	ofp = fopen(outfile, "a");
 	fprintf(ofp,"<cluster>\n");
 	fprintf(ofp,
-		"%f %f %f %f %f %f %d %f %f \n", 
-		vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, modytrack[ievent], pttrack[ievent]);
+		"%f %f %f %f %f %f %d %f %f %f %f %d \n", 
+		vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, modytrack[ievent], pttrack[ievent], hit_z[ievent], hittime[ievent], PID[ievent]);
 	for(k = 1; k<=NCRRC; ++k) {
 	  fprintf(ofp,"<time slice %f ps>\n", k*stimstp);
 	  for (j = 0; j < TYSIZE; ++j) {
@@ -445,3 +462,5 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 } /* MAIN__ */
 
 #include "ppixelav2.c"
+
+
