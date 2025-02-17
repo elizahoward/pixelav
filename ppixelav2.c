@@ -2475,7 +2475,7 @@ double rutherford(float e, float *etar)
   
   /*  Initalize the parameters */
 	
-  ifp = fopen("ppixel2.init", "r");
+  ifp = fopen("silvaco25x25x50_final_efield.out", "r"); /*silvaco25x25x50_final_efield.out*/
   if (ifp==NULL) {
     printf("no ppixel2.init initialization file found/n");
     return 0;
@@ -2547,7 +2547,7 @@ double rutherford(float e, float *etar)
     
   /* Read in weighting potential file */
   
-  ifp = fopen("wgt_pot.init", "r");
+  ifp = fopen("silvaco_25x25x50_final_weighting.out", "r"); /* silvaco_25x25x50_final_weighting.out */
   if (ifp==NULL) {
     printf("no wgt_pot.init initialization file found/n");
     return 0;
