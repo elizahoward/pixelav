@@ -134,7 +134,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 
     /* Local variables */
     static float vect[6];
-    static float cotatrack[NMUON], cotbtrack[NMUON], ppiontrack[NMUON], modxtrack[NMUON], modytrack[NMUON], pttrack[NMUON], hit_z[NMUON], hittime[NMUON], PID0[NMUON];
+    static float cotatrack[NMUON], cotbtrack[NMUON], ppiontrack[NMUON], ylocal[NMUON], zglobal[NMUON], pttrack[NMUON], hittime[NMUON], PID0[NMUON];
     static int flipped[NMUON], PID[NMUON];
     static float thick, xsize, ysize, temp, flux[2], rhe, rhh, peaktim, samptim, stimstp;    
     static int i__, indeh[2][NEHSTORE]	/* was [2][300000] */;
@@ -248,7 +248,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     if(nskip > 0) {
       
       ntrack = 0;
-      while(fscanf(icfp,"%f %f %f %d %f %f %f %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &modxtrack[0], &modytrack[0], &pttrack[0], &hit_z[0], &hittime[0], &PID0[0]) != EOF) {
+      while(fscanf(icfp,"%f %f %f %d %f %f %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &ylocal[0], &zglobal[0], &pttrack[0], &hittime[0], &PID0[0]) != EOF) {
 	++ntrack; 
 	if(ntrack >= nskip) break;
       }		
@@ -257,7 +257,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     /* Now read-in track angles and momenta to process */
 	
     ntrack = 0;
-    while(fscanf(icfp,"%f %f %f %d %f %f %f %f %f %f", &cotatrack[ntrack], &cotbtrack[ntrack], &ppiontrack[ntrack], &flipped[ntrack], &modxtrack[ntrack], &modytrack[ntrack], &pttrack[ntrack], &hit_z[ntrack], &hittime[ntrack], &PID0[ntrack]) != EOF) {
+    while(fscanf(icfp,"%f %f %f %d %f %f %f %f %f", &cotatrack[ntrack], &cotbtrack[ntrack], &ppiontrack[ntrack], &flipped[ntrack], &ylocal[ntrack], &zglobal[ntrack], &pttrack[ntrack], &hittime[ntrack], &PID0[ntrack]) != EOF) {
       //printf("theta = %f \n", hit_z[ntrack]);
       PID[ntrack] = (int)PID0[ntrack];
       ++ntrack;
@@ -401,7 +401,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
 	fprintf(ofp,"<cluster>\n");
 	fprintf(ofp,
 		"%f %f %f %f %f %f %d %f %f %f %f %d \n", 
-		vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, modytrack[ievent], pttrack[ievent], hit_z[ievent], hittime[ievent], PID[ievent]);
+		vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, ylocal[ievent], zglobal[ievent], pttrack[ievent], hittime[ievent], PID[ievent]);
 	for(k = 1; k<=NCRRC; ++k) {
 	  fprintf(ofp,"<time slice %f ps>\n", k*stimstp);
 	  for (j = 0; j < TYSIZE; ++j) {
