@@ -151,7 +151,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     static int fileind, filebase, fileoff, runsize, irun, ievent, frun, nskip, procid, new_drde, ehole;
     static float rvec[4], pimom, xoffset, yoffset, lenxmin, lenxmax, deltaxlen, lenymin, lenymax, deltaylen, locdir[3], cotalpha, cotbeta;
     static float clusxlen, clusylen;
-    static char outfile[500], seedfile[500];
+    static char outfile[500], seedfile[500], logfile[500];
     static double alpha;
     float scale = 1;
 
@@ -176,7 +176,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     }
 
     /* 2 arguments = first run number, second track list */
-    if(argc == 5) {
+    if(argc == 6) {
       sscanf(argv[1],"%d", &frun);
       if(frun < 1 || frun > TEMPMAX) {printf("frun %d is illegal, quit \n", frun); return 0;}
       runsize = 30000;
@@ -184,6 +184,7 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
       sscanf(argv[2],"%s", &track_list);
       sscanf(argv[3],"%s", &outfile);
       sscanf(argv[4],"%s", &seedfile);
+      sscanf(argv[5],"%s", &logfile);
       printf("Track list file: %s \n", track_list);
     }
     
@@ -248,9 +249,10 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
     if(nskip > 0) {
       
       ntrack = 0;
-      while(fscanf(icfp,"%f %f %f %d %f %f %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &ylocal[0], &zglobal[0], &pttrack[0], &hittime[0], &PID0[0]) != EOF) {
-	++ntrack; 
-	if(ntrack >= nskip) break;
+      while(fscanf(icfp,"%f %f %f %d %f %f %f %f %f", &cotatrack[0], &cotbtrack[0], &ppiontrack[0], &flipped[0], &ylocal[0], &zglobal[0], &pttrack[0], &hittime[0], &PID0[0]) != EOF) 
+      {
+        ++ntrack; 
+        if(ntrack >= nskip) break;
       }		
     }
 
@@ -387,35 +389,41 @@ static int Nscale = 1;  /* This doesn't cause additional fluctuations (we alread
       
       if(neh < NEHSTORE) {
 	
-	/*  Propagate the e's and h's (no signal after the sample time) */
-	
-	propag(thick, xsize, ysize, temp, flux, rhe, rhh, samptim, stimstp, ehole, neh, xeh, indeh, xhisteh);
-	
-	/*  Count e's and h's on various pixels */
-	
-	detect(xsize, ysize, thick, ehole, xhisteh, neh, crrcresp, pixel, pixhist);
-	
-	/*  Write out the results to a file */
-	
-	ofp = fopen(outfile, "a");
-	fprintf(ofp,"<cluster>\n");
-	fprintf(ofp,
-		"%f %f %f %f %f %f %d %f %f %f %f %d \n", 
-		vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, ylocal[ievent], zglobal[ievent], pttrack[ievent], hittime[ievent], PID[ievent]);
-	for(k = 1; k<=NCRRC; ++k) {
-	  fprintf(ofp,"<time slice %f ps>\n", k*stimstp);
-	  for (j = 0; j < TYSIZE; ++j) {
-	    fprintf(ofp,
-		    "%2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f\n", 
-		    pixhist[k][0][j], pixhist[k][1][j], pixhist[k][2][j], pixhist[k][3][j], pixhist[k][4][j], 
-		    pixhist[k][5][j], pixhist[k][6][j], pixhist[k][7][j], pixhist[k][8][j], pixhist[k][9][j],
-		    pixhist[k][10][j], pixhist[k][11][j], pixhist[k][12][j], pixhist[k][13][j], pixhist[k][14][j],
-		    pixhist[k][15][j], pixhist[k][16][j], pixhist[k][17][j], pixhist[k][18][j], pixhist[k][19][j], 
-		    pixhist[k][20][j]);
-	  }
-	}    
-	fclose(ofp);      
+          /*  Propagate the e's and h's (no signal after the sample time) */
+          
+          propag(thick, xsize, ysize, temp, flux, rhe, rhh, samptim, stimstp, ehole, neh, xeh, indeh, xhisteh);
+          
+          /*  Count e's and h's on various pixels */
+          
+          detect(xsize, ysize, thick, ehole, xhisteh, neh, crrcresp, pixel, pixhist);
+          
+          /*  Write out the results to a file */
+          
+          ofp = fopen(outfile, "a");
+          fprintf(ofp,"<cluster>\n");
+          fprintf(ofp,
+            "%f %f %f %f %f %f %d %f %f %f %f %d \n", 
+            vect[0], vect[1], vect[2], vect[3], vect[4], vect[5], neh, ylocal[ievent], zglobal[ievent], pttrack[ievent], hittime[ievent], PID[ievent]);
+          for(k = 1; k<=NCRRC; ++k) {
+            fprintf(ofp,"<time slice %f ps>\n", k*stimstp);
+            for (j = 0; j < TYSIZE; ++j) {
+              fprintf(ofp,
+                "%2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f %2.1f\n", 
+                pixhist[k][0][j], pixhist[k][1][j], pixhist[k][2][j], pixhist[k][3][j], pixhist[k][4][j], 
+                pixhist[k][5][j], pixhist[k][6][j], pixhist[k][7][j], pixhist[k][8][j], pixhist[k][9][j],
+                pixhist[k][10][j], pixhist[k][11][j], pixhist[k][12][j], pixhist[k][13][j], pixhist[k][14][j],
+                pixhist[k][15][j], pixhist[k][16][j], pixhist[k][17][j], pixhist[k][18][j], pixhist[k][19][j], 
+                pixhist[k][20][j]);
+            }
+          }    
+          fclose(ofp);      
       } 
+      else{
+        ofp = fopen(logfile, "a");
+        fprintf(ofp,"NehBig event %4d track  ",ievent);
+        fprintf(ofp,"%f %f %f %d %f %f %f %f %f \n", cotatrack[ievent], cotbtrack[ievent], ppiontrack[ievent], flipped[ievent], ylocal[ievent], zglobal[ievent], pttrack[ievent], hittime[ievent], PID0[ievent]);
+        fclose(ofp);
+      }
       
     incr: ievent += 1;
       
